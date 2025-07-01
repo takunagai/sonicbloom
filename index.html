@@ -5,16 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Particle Animation</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
     <div id="info">
         <h1>Interactive Particle Animation</h1>
         <div class="controls">
-            <p>クリック: 爆発エフェクト | ドラッグ: パーティクル操作</p>
+            <p><strong>クリックしてサウンドシステムを開始してください</strong></p>
+            <p>クリック: 爆発エフェクト | ドラッグ: パーティクル操作 + 軌跡表示</p>
             <p>Space: 一時停止 | R: リセット | 1-5: エフェクト切替 | M: ミュート</p>
             <div class="sound-controls">
+                <div id="sound-status" style="margin-bottom: 10px; padding: 5px; border-radius: 3px; font-size: 12px;">
+                    <span id="sound-status-text">🔴 サウンドシステム: 初期化中...</span>
+                </div>
                 <label for="volume-slider">音量: </label>
                 <input type="range" id="volume-slider" min="0" max="100" value="70">
                 <span id="volume-display">70%</span>
@@ -24,6 +28,7 @@
     </div>
     <script src="utils.js"></script>
     <script src="soundSystem.js"></script>
+    <script src="dragTrail.js"></script>
     <script src="particle.js"></script>
     <script src="particleSystem.js"></script>
     <script src="sketch.js"></script>
