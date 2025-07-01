@@ -2,6 +2,7 @@
 
 let particleSystem;
 let soundSystem;
+let dragTrail;
 let isPaused = false;
 let currentEffect = 1;
 let performanceMonitor;
@@ -16,6 +17,9 @@ function setup() {
     particleSystem = new ParticleSystem();
     performanceMonitor = new PerformanceMonitor();
     
+    // ドラッグ軌跡システムの初期化
+    dragTrail = new DragTrail();
+    
     // サウンドシステムの初期化
     soundSystem = new SoundSystem();
     soundSystem.init();
@@ -24,10 +28,8 @@ function setup() {
     // 初期パーティクルの生成
     particleSystem.createInitialParticles();
     
-    // アンビエントサウンドの開始
-    setTimeout(() => {
-        soundSystem.startAmbient();
-    }, 1000);
+    // アンビエントサウンドは最初のユーザーインタラクション後に開始
+    console.log('Setup completed. Click to start sound system.');
     
     // UIコントロールの初期化
     setupSoundControls();
@@ -49,7 +51,11 @@ function draw() {
     
     if (!isPaused) {
         particleSystem.update();
+        dragTrail.update();
     }
+    
+    // ドラッグ軌跡の描画（パーティクルより背面）
+    dragTrail.display();
     
     particleSystem.display();
     
@@ -66,18 +72,27 @@ function windowResized() {
 
 // マウスクリック時の処理
 function mousePressed() {
-    // 初回クリック時にサウンドシステムを初期化
-    if (!soundSystem.isInitialized) {
-        soundSystem.initOnUserGesture();
-    }
+    console.log('Mouse pressed - initializing sound system');
+    
+    // 毎回ユーザーインタラクション時の初期化を試行
+    soundSystem.initOnUserGesture();
     
     particleSystem.createExplosion(mouseX, mouseY);
-    soundSystem.playInteractionSound('click', mouseX, mouseY);
+    
+    // 少し遅延してサウンド再生を試行
+    setTimeout(() => {
+        soundSystem.playInteractionSound('click', mouseX, mouseY);
+    }, 100);
 }
 
 // マウスドラッグ時の処理
 function mouseDragged() {
-    particleSystem.applyForce(mouseX, mouseY, pmouseX, pmouseY);
+    // ドラッグ軌跡を記録
+    dragTrail.addPoint(mouseX, mouseY, pmouseX, pmouseY);
+    
+    // 強化されたパーティクルへの力の適用
+    particleSystem.applyEnhancedForce(mouseX, mouseY, pmouseX, pmouseY);
+    
     const velocity = dist(mouseX, mouseY, pmouseX, pmouseY);
     soundSystem.playInteractionSound('drag', mouseX, mouseY, velocity);
 }
@@ -133,27 +148,40 @@ function displayDebugInfo() {
     fill(255);
     noStroke();
     textAlign(LEFT);
-    text(`FPS: ${performanceMonitor.getFPS()}`, 10, height - 40);
-    text(`Particles: ${particleSystem.getParticleCount()}`, 10, height - 20);
+    text(`FPS: ${performanceMonitor.getFPS()}`, 10, height - 60);
+    text(`Particles: ${particleSystem.getParticleCount()}`, 10, height - 40);
+    text(`Drag Trails: ${dragTrail.getTrailCount()}`, 10, height - 20);
     pop();
 }
 
 // サウンドコントロールの初期化
 function setupSoundControls() {
+    console.log('🎛️ Setting up sound controls...');
+    
     const volumeSlider = document.getElementById('volume-slider');
     const volumeDisplay = document.getElementById('volume-display');
     const muteButton = document.getElementById('mute-button');
     
+    if (!volumeSlider || !volumeDisplay || !muteButton) {
+        console.error('❌ Sound control elements not found');
+        return;
+    }
+    
+    console.log('✅ Sound control elements found');
+    
     // ボリュームスライダーのイベントハンドラー
     volumeSlider.addEventListener('input', (e) => {
         const volume = e.target.value / 100;
+        console.log('🔊 Volume slider changed to:', volume);
         soundSystem.setMasterVolume(volume);
         volumeDisplay.textContent = `${e.target.value}%`;
     });
     
     // ミュートボタンのイベントハンドラー
     muteButton.addEventListener('click', () => {
+        console.log('🔇 Mute button clicked');
         const isMuted = soundSystem.toggleMute();
+        console.log('🔇 Mute state:', isMuted);
         muteButton.textContent = isMuted ? '🔇' : '🔊';
         muteButton.classList.toggle('muted', isMuted);
         
@@ -161,4 +189,6 @@ function setupSoundControls() {
         volumeSlider.disabled = isMuted;
         volumeSlider.style.opacity = isMuted ? '0.4' : '0.8';
     });
+    
+    console.log('✅ Sound controls initialized');
 }
