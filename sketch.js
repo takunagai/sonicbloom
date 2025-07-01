@@ -1,6 +1,7 @@
 // メインスケッチファイル
 
 let particleSystem;
+let soundSystem;
 let isPaused = false;
 let currentEffect = 1;
 let performanceMonitor;
@@ -15,8 +16,21 @@ function setup() {
     particleSystem = new ParticleSystem();
     performanceMonitor = new PerformanceMonitor();
     
+    // サウンドシステムの初期化
+    soundSystem = new SoundSystem();
+    soundSystem.init();
+    particleSystem.setSoundSystem(soundSystem);
+    
     // 初期パーティクルの生成
     particleSystem.createInitialParticles();
+    
+    // アンビエントサウンドの開始
+    setTimeout(() => {
+        soundSystem.startAmbient();
+    }, 1000);
+    
+    // UIコントロールの初期化
+    setupSoundControls();
     
     // ブレンドモードの設定
     blendMode(ADD);
@@ -52,12 +66,20 @@ function windowResized() {
 
 // マウスクリック時の処理
 function mousePressed() {
+    // 初回クリック時にサウンドシステムを初期化
+    if (!soundSystem.isInitialized) {
+        soundSystem.initOnUserGesture();
+    }
+    
     particleSystem.createExplosion(mouseX, mouseY);
+    soundSystem.playInteractionSound('click', mouseX, mouseY);
 }
 
 // マウスドラッグ時の処理
 function mouseDragged() {
     particleSystem.applyForce(mouseX, mouseY, pmouseX, pmouseY);
+    const velocity = dist(mouseX, mouseY, pmouseX, pmouseY);
+    soundSystem.playInteractionSound('drag', mouseX, mouseY, velocity);
 }
 
 // キー押下時の処理
@@ -96,6 +118,11 @@ function keyPressed() {
             particleSystem.setEffect(currentEffect);
             bgAlpha = 25;
             break;
+        case 'm':
+        case 'M':
+            const isMuted = soundSystem.toggleMute();
+            console.log('Sound ' + (isMuted ? 'muted' : 'unmuted'));
+            break;
     }
 }
 
@@ -109,4 +136,29 @@ function displayDebugInfo() {
     text(`FPS: ${performanceMonitor.getFPS()}`, 10, height - 40);
     text(`Particles: ${particleSystem.getParticleCount()}`, 10, height - 20);
     pop();
+}
+
+// サウンドコントロールの初期化
+function setupSoundControls() {
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeDisplay = document.getElementById('volume-display');
+    const muteButton = document.getElementById('mute-button');
+    
+    // ボリュームスライダーのイベントハンドラー
+    volumeSlider.addEventListener('input', (e) => {
+        const volume = e.target.value / 100;
+        soundSystem.setMasterVolume(volume);
+        volumeDisplay.textContent = `${e.target.value}%`;
+    });
+    
+    // ミュートボタンのイベントハンドラー
+    muteButton.addEventListener('click', () => {
+        const isMuted = soundSystem.toggleMute();
+        muteButton.textContent = isMuted ? '🔇' : '🔊';
+        muteButton.classList.toggle('muted', isMuted);
+        
+        // ミュート時はボリュームスライダーを無効化
+        volumeSlider.disabled = isMuted;
+        volumeSlider.style.opacity = isMuted ? '0.4' : '0.8';
+    });
 }

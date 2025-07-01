@@ -8,6 +8,7 @@ class ParticleSystem {
         this.gravity = createVector(0, 0.1);
         this.wind = createVector(0, 0);
         this.time = 0;
+        this.soundSystem = null;
         
         // エフェクト別の設定
         this.effectConfigs = {
@@ -42,6 +43,11 @@ class ParticleSystem {
                 mouseAttraction: 1.2
             }
         };
+    }
+    
+    // サウンドシステムの設定
+    setSoundSystem(soundSystem) {
+        this.soundSystem = soundSystem;
     }
     
     // 初期パーティクルの生成
@@ -83,6 +89,11 @@ class ParticleSystem {
     createExplosion(x, y) {
         const numParticles = random(30, 50);
         const explosionForce = random(5, 15);
+        
+        // 爆発音の再生
+        if (this.soundSystem) {
+            this.soundSystem.playEffectSound(this.currentEffect, x, y, explosionForce / 15);
+        }
         
         for (let i = 0; i < numParticles; i++) {
             const angle = (TWO_PI / numParticles) * i + random(-0.2, 0.2);
@@ -221,6 +232,11 @@ class ParticleSystem {
             };
             
             this.addParticle(new Particle(x, y, config));
+            
+            // パーティクル生成音の再生
+            if (this.soundSystem && random() < 0.3) {
+                this.soundSystem.playInteractionSound('particleCreate', x, y);
+            }
         }
     }
     
