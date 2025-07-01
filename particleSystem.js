@@ -126,7 +126,7 @@ class ParticleSystem {
         });
     }
     
-    // マウスによる力の適用
+    // マウスによる力の適用（従来版）
     applyForce(mouseX, mouseY, pmouseX, pmouseY) {
         const force = createVector(mouseX - pmouseX, mouseY - pmouseY);
         force.mult(0.1);
@@ -136,6 +136,44 @@ class ParticleSystem {
             if (distance < 100) {
                 const scaledForce = p5.Vector.mult(force, map(distance, 0, 100, 1, 0));
                 particle.applyForce(scaledForce);
+            }
+        });
+    }
+    
+    // 強化されたマウスによる力の適用
+    applyEnhancedForce(mouseX, mouseY, pmouseX, pmouseY) {
+        const dragVector = createVector(mouseX - pmouseX, mouseY - pmouseY);
+        const dragSpeed = dragVector.mag();
+        
+        // ドラッグ速度に基づいて力を調整（速いドラッグほど強い力）
+        const forceMultiplier = map(dragSpeed, 0, 50, 0.2, 0.8);
+        dragVector.mult(forceMultiplier);
+        
+        this.particles.forEach(particle => {
+            const distance = dist(particle.position.x, particle.position.y, mouseX, mouseY);
+            
+            // 影響範囲を拡大（100px → 200px）
+            if (distance < 200) {
+                // 距離による力の減衰を緩やかに
+                const distanceRatio = map(distance, 0, 200, 1, 0.1);
+                
+                // 基本的なドラッグ力
+                const dragForce = p5.Vector.mult(dragVector, distanceRatio);
+                particle.applyForce(dragForce);
+                
+                // ドラッグ位置への引力効果を追加
+                if (dragSpeed > 5) { // ある程度速いドラッグの時のみ
+                    const attraction = createVector(mouseX - particle.position.x, mouseY - particle.position.y);
+                    attraction.normalize();
+                    attraction.mult(0.3 * distanceRatio * (dragSpeed / 20));
+                    particle.applyForce(attraction);
+                }
+                
+                // 近距離でのドラッグ同期効果
+                if (distance < 50) {
+                    const syncForce = p5.Vector.mult(dragVector, 0.4);
+                    particle.applyForce(syncForce);
+                }
             }
         });
     }
