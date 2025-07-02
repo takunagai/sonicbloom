@@ -13,7 +13,8 @@ let currentDragPath = [];
 // キャンバスの設定
 function setup() {
     createCanvas(windowWidth, windowHeight);
-    colorMode(RGB, 255, 255, 255, 100);
+    const colorConfig = Config.CANVAS.COLOR_MODE;
+    colorMode(RGB, colorConfig.R_MAX, colorConfig.G_MAX, colorConfig.B_MAX, colorConfig.A_MAX);
     
     // パーティクルシステムの初期化
     particleSystem = new ParticleSystem();
@@ -62,7 +63,7 @@ function draw() {
     particleSystem.display();
     
     // デバッグ情報の表示（開発時のみ）
-    if (keyIsDown(68)) { // 'D' キー
+    if (keyIsDown(Config.UI.DEBUG_KEY_CODE)) {
         displayDebugInfo();
     }
 }
@@ -105,20 +106,28 @@ function mouseDragged() {
 // マウスリリース時の処理
 function mouseReleased() {
     if (isDragging && currentDragPath.length > 1) {
-        // ドラッグ終点で爆発を作成
+        // ドラッグ終点で爆発を作成（非同期処理）
         const endPoint = currentDragPath[currentDragPath.length - 1];
-        particleSystem.createPathExplosion(endPoint.x, endPoint.y, currentDragPath);
-        
-        // サウンド再生
-        soundSystem.playInteractionSound('explosion', endPoint.x, endPoint.y);
+        particleSystem.createPathExplosion(endPoint.x, endPoint.y, currentDragPath)
+            .then(() => {
+                // サウンド再生
+                soundSystem.playInteractionSound('explosion', endPoint.x, endPoint.y);
+            })
+            .catch(error => {
+                console.error('Path explosion failed:', error);
+            });
     } else {
-        // 通常のクリック時は起点で爆発
-        particleSystem.createExplosion(mouseX, mouseY);
-        
-        // 少し遅延してサウンド再生を試行
-        setTimeout(() => {
-            soundSystem.playInteractionSound('click', mouseX, mouseY);
-        }, 100);
+        // 通常のクリック時は起点で爆発（非同期処理）
+        particleSystem.createExplosion(mouseX, mouseY)
+            .then(() => {
+                // 少し遅延してサウンド再生を試行
+                setTimeout(() => {
+                    soundSystem.playInteractionSound('click', mouseX, mouseY);
+                }, Config.UI.TIMING.SOUND_DELAY_MS);
+            })
+            .catch(error => {
+                console.error('Basic explosion failed:', error);
+            });
     }
     
     // ドラッグ状態をリセット
@@ -172,14 +181,15 @@ function keyPressed() {
 
 // デバッグ情報の表示
 function displayDebugInfo() {
+    const debugPos = Config.UI.DEBUG_POSITION;
     push();
     blendMode(BLEND);
     fill(255);
     noStroke();
     textAlign(LEFT);
-    text(`FPS: ${performanceMonitor.getFPS()}`, 10, height - 60);
-    text(`Particles: ${particleSystem.getParticleCount()}`, 10, height - 40);
-    text(`Drag Trails: ${dragTrail.getTrailCount()}`, 10, height - 20);
+    text(`FPS: ${performanceMonitor.getFPS()}`, debugPos.X, height - debugPos.Y_OFFSET_FPS);
+    text(`Particles: ${particleSystem.getParticleCount()}`, debugPos.X, height - debugPos.Y_OFFSET_PARTICLES);
+    text(`Drag Trails: ${dragTrail.getTrailCount()}`, debugPos.X, height - debugPos.Y_OFFSET_TRAILS);
     pop();
 }
 
@@ -200,7 +210,7 @@ function setupSoundControls() {
     
     // ボリュームスライダーのイベントハンドラー
     volumeSlider.addEventListener('input', (e) => {
-        const volume = e.target.value / 100;
+        const volume = e.target.value / Config.UI.VOLUME.SLIDER_SCALE;
         console.log('🔊 Volume slider changed to:', volume);
         soundSystem.setMasterVolume(volume);
         volumeDisplay.textContent = `${e.target.value}%`;
@@ -216,7 +226,7 @@ function setupSoundControls() {
         
         // ミュート時はボリュームスライダーを無効化
         volumeSlider.disabled = isMuted;
-        volumeSlider.style.opacity = isMuted ? '0.4' : '0.8';
+        volumeSlider.style.opacity = isMuted ? Config.UI.VOLUME.MUTED_OPACITY : Config.UI.VOLUME.NORMAL_OPACITY;
     });
     
     console.log('✅ Sound controls initialized');

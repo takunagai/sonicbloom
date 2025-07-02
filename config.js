@@ -14,7 +14,67 @@ class AppConfig {
             /** フレームレート */
             TARGET_FPS: 60,
             /** ブレンドモード */
-            BLEND_MODE: 'ADD'
+            BLEND_MODE: 'ADD',
+            /** カラーモード設定 */
+            COLOR_MODE: {
+                R_MAX: 255,
+                G_MAX: 255,
+                B_MAX: 255,
+                A_MAX: 100
+            }
+        };
+    }
+
+    static get UI() {
+        return {
+            /** デバッグキー */
+            DEBUG_KEY_CODE: 68, // 'D' キー
+            /** デバッグ表示位置 */
+            DEBUG_POSITION: {
+                X: 10,
+                Y_OFFSET_FPS: 60,
+                Y_OFFSET_PARTICLES: 40,
+                Y_OFFSET_TRAILS: 20
+            },
+            /** 音量関連 */
+            VOLUME: {
+                SLIDER_SCALE: 100,
+                MUTED_OPACITY: 0.4,
+                NORMAL_OPACITY: 0.8
+            },
+            /** タイミング */
+            TIMING: {
+                SOUND_DELAY_MS: 100
+            }
+        };
+    }
+
+    static get RENDERING() {
+        return {
+            /** トレイル効果 */
+            TRAIL: {
+                MIN_VELOCITY_FOR_DISPLAY: 0.5,
+                THICKNESS_MULTIPLIER: 0.8,
+                ALPHA_MULTIPLIER: 0.3
+            },
+            /** グロー効果 */
+            GLOW: {
+                LAYERS: 3,
+                SIZE_MULTIPLIER_BASE: 1,
+                SIZE_MULTIPLIER_STEP: 0.5,
+                ALPHA_DIVISOR_BASE: 0.1
+            },
+            /** 境界反発 */
+            BOUNDS: {
+                BOUNCE_DAMPING: 0.8
+            },
+            /** エフェクト設定 */
+            EFFECTS: {
+                PULSE_SPEED: 0.1,
+                RAINBOW_HUE_SPEED: 2,
+                EXPLOSION_DECAY_RATE: 0.95,
+                EXPLOSION_MIN_FORCE: 0.1
+            }
         };
     }
 
@@ -38,7 +98,15 @@ class AppConfig {
                 /** デフォルト減衰率 */
                 DEFAULT_DAMPING: 0.98,
                 /** 跳ね返り係数 */
-                BOUNCE_FACTOR: 0.8
+                BOUNCE_FACTOR: 0.8,
+                /** 速度範囲 */
+                SPEED_RANGE: { min: 1, max: 5 },
+                /** 質量係数 */
+                MASS_COEFFICIENT: 0.1,
+                /** 回転速度範囲 */
+                ROTATION_SPEED_RANGE: { min: -0.1, max: 0.1 },
+                /** マウス引力の距離範囲 */
+                MOUSE_ATTRACTION_DISTANCE: { min: 5, max: 200 }
             },
 
             /** 外観パラメータ */
@@ -47,6 +115,12 @@ class AppConfig {
                 SIZE_RANGE: { min: 2, max: 8 },
                 /** 初期サイズ範囲 */
                 INITIAL_SIZE_RANGE: { min: 3, max: 8 },
+                /** サイズ変動倍率 */
+                SIZE_MULTIPLIERS: { max: 2, min: 0.5 },
+                /** 彩度範囲 */
+                SATURATION_RANGE: { min: 60, max: 100 },
+                /** 色相範囲 */
+                HUE_RANGE: 360,
                 /** ライフスパン範囲 */
                 LIFESPAN_RANGE: { min: 60, max: 180 },
                 /** 初期ライフスパン範囲 */
@@ -91,6 +165,36 @@ class AppConfig {
                 INFLUENCE_RADIUS: 150,
                 /** ライフスパン範囲 */
                 LIFESPAN_RANGE: { min: 60, max: 120 }
+            },
+
+            /** パス爆発エフェクトパラメータ */
+            PATH_EXPLOSION: {
+                /** パーティクル数倍率 */
+                PARTICLE_COUNT_MULTIPLIER: 1.5,
+                /** 拡散角度（ラジアン） */
+                SPREAD_ANGLE: Math.PI / 3, // 60度
+                /** 速度係数 */
+                VELOCITY_COEFFICIENT: 0.5,
+                /** サイズ範囲 */
+                SIZE_RANGE: { min: 4, max: 12 },
+                /** ライフスパン倍率 */
+                LIFESPAN_MULTIPLIER: 1.2,
+                /** パス方向計算用の参照点数 */
+                DIRECTION_REFERENCE_POINTS: 5
+            },
+
+            /** パス追従パラメータ */
+            PATH_FOLLOWING: {
+                /** パス進行速度 */
+                PROGRESS_SPEED: 0.02,
+                /** 最大引力距離 */
+                MAX_ATTRACTION_DISTANCE: 100,
+                /** 引力係数 */
+                ATTRACTION_COEFFICIENT: 0.5,
+                /** パス影響力範囲 */
+                INFLUENCE_RANGE: { min: 0.3, max: 0.7 },
+                /** パス簡略化の閾値 */
+                SIMPLIFICATION_THRESHOLD: 10
             }
         };
     }

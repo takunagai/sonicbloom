@@ -36,7 +36,8 @@ class Particle {
             
             // 速度と加速度
             const dir = config.direction || randomDirection();
-            const speed = config.speed || random(1, 5);
+            const speedRange = Config.PARTICLES.PHYSICS.SPEED_RANGE;
+            const speed = config.speed || random(speedRange.min, speedRange.max);
             this.velocity = createVector(dir.x * speed, dir.y * speed);
             this.acceleration = createVector(0, 0);
             
@@ -78,10 +79,12 @@ class Particle {
         const sizeRange = particleConfig.APPEARANCE.SIZE_RANGE;
         
         this.size = config.size || random(sizeRange.min, sizeRange.max);
-        this.maxSize = this.size * 2;
-        this.minSize = this.size * 0.5;
-        this.hue = config.hue || random(360);
-        this.saturation = config.saturation || random(60, 100);
+        const sizeMultipliers = particleConfig.APPEARANCE.SIZE_MULTIPLIERS;
+        this.maxSize = this.size * sizeMultipliers.max;
+        this.minSize = this.size * sizeMultipliers.min;
+        this.hue = config.hue || random(particleConfig.APPEARANCE.HUE_RANGE);
+        const satRange = particleConfig.APPEARANCE.SATURATION_RANGE;
+        this.saturation = config.saturation || random(satRange.min, satRange.max);
         this.brightness = config.brightness || 100;
         this.alpha = config.alpha || 100;
         this.maxAlpha = this.alpha;
@@ -95,7 +98,7 @@ class Particle {
     initializePhysics(config, particleConfig) {
         const lifespanRange = particleConfig.APPEARANCE.LIFESPAN_RANGE;
         
-        this.mass = this.size * 0.1;
+        this.mass = this.size * Config.PARTICLES.PHYSICS.MASS_COEFFICIENT;
         this.lifespan = config.lifespan || random(lifespanRange.min, lifespanRange.max);
         this.maxLifespan = this.lifespan;
         this.damping = config.damping || particleConfig.PHYSICS.DEFAULT_DAMPING;
@@ -109,7 +112,8 @@ class Particle {
         this.mode = config.mode || 'normal';
         this.trail = config.trail || false;
         this.pulsePhase = random(TWO_PI);
-        this.rotationSpeed = random(-0.1, 0.1);
+        const rotRange = Config.PARTICLES.PHYSICS.ROTATION_SPEED_RANGE;
+        this.rotationSpeed = random(rotRange.min, rotRange.max);
         this.rotation = 0;
         
         // パスに沿った動きのプロパティ
@@ -149,14 +153,15 @@ class Particle {
         this.brightness = 100;
         this.alpha = 100;
         this.maxAlpha = 100;
-        this.mass = this.size * 0.1;
+        this.mass = this.size * Config.PARTICLES.PHYSICS.MASS_COEFFICIENT;
         this.lifespan = random(60, 180);
         this.maxLifespan = this.lifespan;
         this.damping = 0.98;
         this.mode = 'normal';
         this.trail = false;
         this.pulsePhase = random(TWO_PI);
-        this.rotationSpeed = random(-0.1, 0.1);
+        const rotRange = Config.PARTICLES.PHYSICS.ROTATION_SPEED_RANGE;
+        this.rotationSpeed = random(rotRange.min, rotRange.max);
         this.rotation = 0;
         this.target = null;
         this.isExploding = false;
@@ -197,7 +202,8 @@ class Particle {
         const force = p5.Vector.sub(mouse, this.position);
         const distance = force.mag();
         
-        if (distance > 5 && distance < 200) {
+        const distRange = Config.PARTICLES.PHYSICS.MOUSE_ATTRACTION_DISTANCE;
+        if (distance > distRange.min && distance < distRange.max) {
             force.normalize();
             const mag = strength * this.mass / (distance * distance);
             force.mult(mag);
@@ -239,25 +245,26 @@ class Particle {
         this.lifespan--;
         
         // アルファ値の更新（フェードアウト効果）
-        if (this.lifespan < 30) {
-            this.alpha = map(this.lifespan, 0, 30, 0, this.maxAlpha);
+        const fadeStart = Config.PARTICLES.APPEARANCE.FADE_START_TIME;
+        if (this.lifespan < fadeStart) {
+            this.alpha = map(this.lifespan, 0, fadeStart, 0, this.maxAlpha);
         }
         
         // サイズのパルス効果
         if (this.mode === 'pulse') {
-            const pulse = sin(this.pulsePhase + frameCount * 0.1);
+            const pulse = sin(this.pulsePhase + frameCount * Config.RENDERING.EFFECTS.PULSE_SPEED);
             this.size = map(pulse, -1, 1, this.minSize, this.maxSize);
         }
         
         // 色相の変化
         if (this.mode === 'rainbow') {
-            this.hue = (this.hue + 2) % 360;
+            this.hue = (this.hue + Config.RENDERING.EFFECTS.RAINBOW_HUE_SPEED) % 360;
         }
         
         // 爆発効果の減衰
         if (this.isExploding) {
-            this.explosionForce *= 0.95;
-            if (this.explosionForce < 0.1) {
+            this.explosionForce *= Config.RENDERING.EFFECTS.EXPLOSION_DECAY_RATE;
+            if (this.explosionForce < Config.RENDERING.EFFECTS.EXPLOSION_MIN_FORCE) {
                 this.isExploding = false;
             }
         }
@@ -270,13 +277,14 @@ class Particle {
     checkBounds() {
         const margin = this.size;
         
+        const bounceCoeff = -Config.RENDERING.BOUNDS.BOUNCE_DAMPING;
         if (this.position.x < margin || this.position.x > width - margin) {
-            this.velocity.x *= -0.8;
+            this.velocity.x *= bounceCoeff;
             this.position.x = constrain(this.position.x, margin, width - margin);
         }
         
         if (this.position.y < margin || this.position.y > height - margin) {
-            this.velocity.y *= -0.8;
+            this.velocity.y *= bounceCoeff;
             this.position.y = constrain(this.position.y, margin, height - margin);
         }
     }
@@ -286,9 +294,10 @@ class Particle {
         push();
         
         // トレイル効果
-        if (this.trail && this.velocity.mag() > 0.5) {
-            strokeWeight(this.size * 0.8);
-            stroke(this.hue, this.saturation, this.brightness, this.alpha * 0.3);
+        const trailConfig = Config.RENDERING.TRAIL;
+        if (this.trail && this.velocity.mag() > trailConfig.MIN_VELOCITY_FOR_DISPLAY) {
+            strokeWeight(this.size * trailConfig.THICKNESS_MULTIPLIER);
+            stroke(this.hue, this.saturation, this.brightness, this.alpha * trailConfig.ALPHA_MULTIPLIER);
             line(this.previousPosition.x, this.previousPosition.y, 
                  this.position.x, this.position.y);
         }
@@ -300,9 +309,10 @@ class Particle {
         noStroke();
         
         // グロー効果
-        for (let i = 3; i > 0; i--) {
-            const glowSize = this.size * (1 + i * 0.5);
-            const glowAlpha = this.alpha * (0.1 / i);
+        const glowConfig = Config.RENDERING.GLOW;
+        for (let i = glowConfig.LAYERS; i > 0; i--) {
+            const glowSize = this.size * (glowConfig.SIZE_MULTIPLIER_BASE + i * glowConfig.SIZE_MULTIPLIER_STEP);
+            const glowAlpha = this.alpha * (glowConfig.ALPHA_DIVISOR_BASE / i);
             fill(this.hue, this.saturation, this.brightness, glowAlpha);
             ellipse(0, 0, glowSize, glowSize);
         }
@@ -351,7 +361,7 @@ class Particle {
             if (!this.pathData || this.pathData.length < 2) return;
             
             // パス上の進行度を更新
-            this.pathProgress += 0.02; // 進行速度（調整可能）
+            this.pathProgress += Config.PARTICLES.PATH_FOLLOWING.PROGRESS_SPEED;
             
             // パス終了時の処理
             if (this.pathProgress >= 1.0) {
@@ -378,9 +388,11 @@ class Particle {
             const attraction = p5.Vector.sub(targetPosition, this.position);
             const distance = attraction.mag();
             
-            if (distance > 0 && distance < 100) {
+            const maxDist = Config.PARTICLES.PATH_FOLLOWING.MAX_ATTRACTION_DISTANCE;
+            const attractCoeff = Config.PARTICLES.PATH_FOLLOWING.ATTRACTION_COEFFICIENT;
+            if (distance > 0 && distance < maxDist) {
                 attraction.normalize();
-                attraction.mult(this.pathInfluence * 0.5);
+                attraction.mult(this.pathInfluence * attractCoeff);
                 this.applyForce(attraction);
             }
             

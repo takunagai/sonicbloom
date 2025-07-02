@@ -20,6 +20,12 @@ class ParticleSystem {
             this.currentEffect = options.initialEffect || 1;
             this.time = 0;
             this.soundSystem = null;
+
+            // 爆発管理システム
+            this.explosionManager = new ExplosionManager();
+
+            // パーティクルファクトリー管理システム
+            this.particleFactoryManager = new ParticleFactoryManager();
             
             // 物理パラメータ
             this.gravity = createVector(
@@ -79,6 +85,12 @@ class ParticleSystem {
         this.particlePool = [];
         this.maxPoolSize = 2000;
         
+        // 爆発管理システム
+        this.explosionManager = new ExplosionManager();
+
+        // パーティクルファクトリー管理システム
+        this.particleFactoryManager = new ParticleFactoryManager();
+        
         // 最小限のエフェクト設定
         this.effectConfigs = {
             1: { mode: 'normal', trail: false, gravity: false, mouseAttraction: 0.5, bgAlpha: 20 },
@@ -124,64 +136,56 @@ class ParticleSystem {
             
             console.log(`Creating ${numParticles} initial particles`);
             
-            for (let i = 0; i < numParticles; i++) {
-                const angle = (TWO_PI / numParticles) * i;
-                const radius = random(50, 150);
-                const x = centerX + cos(angle) * radius;
-                const y = centerY + sin(angle) * radius;
-                
-                const particleConfig = this.createParticleConfig({
-                    direction: { x: cos(angle), y: sin(angle) },
-                    speed: random(0.5, 2),
-                    size: random(config.APPEARANCE.INITIAL_SIZE_RANGE.min, config.APPEARANCE.INITIAL_SIZE_RANGE.max),
-                    hue: (i * 360 / numParticles) % 360,
-                    saturation: random(70, 100),
-                    brightness: 100,
-                    alpha: random(80, 100),
-                    lifespan: random(config.APPEARANCE.INITIAL_LIFESPAN_RANGE.min, config.APPEARANCE.INITIAL_LIFESPAN_RANGE.max),
-                    mode: this.effectConfigs[this.currentEffect].mode
-                });
-                
-                const particle = this.createParticle(x, y, particleConfig);
+            // ファクトリーヘルパーを使用して円形配置でパーティクルを作成
+            const baseOptions = {
+                mode: this.effectConfigs[this.currentEffect].mode
+            };
+            
+            const particles = ParticleCreationHelpers.createCircularLayout(
+                this.particleFactoryManager,
+                'initial',
+                centerX,
+                centerY,
+                numParticles,
+                random(50, 150),
+                baseOptions
+            );
+            
+            // 作成されたパーティクルを追加
+            particles.forEach(particle => {
                 if (particle) {
                     this.addParticle(particle);
                 }
-            }
+            });
             
             console.log(`✅ Created ${this.particles.length} initial particles`);
         }, 'ParticleSystem.createInitialParticles', 50);
     }
     
     /**
-     * パーティクル設定の作成
+     * パーティクル設定の作成（ファクトリーシステムへの委譲）
      * @param {Object} baseConfig - 基本設定
      * @returns {Object} 完全なパーティクル設定
+     * @deprecated 新しいファクトリーシステムの使用を推奨
      */
     createParticleConfig(baseConfig = {}) {
-        const config = Config.PARTICLES;
-        const defaultConfig = {
-            direction: baseConfig.direction || { x: 0, y: 0 },
-            speed: baseConfig.speed || random(0.5, 3),
-            size: baseConfig.size || random(config.APPEARANCE.SIZE_RANGE.min, config.APPEARANCE.SIZE_RANGE.max),
-            hue: baseConfig.hue || random(360),
-            saturation: baseConfig.saturation || random(60, 100),
-            brightness: baseConfig.brightness || 100,
-            alpha: baseConfig.alpha || random(60, 100),
-            lifespan: baseConfig.lifespan || random(config.APPEARANCE.LIFESPAN_RANGE.min, config.APPEARANCE.LIFESPAN_RANGE.max),
-            mode: baseConfig.mode || this.effectConfigs[this.currentEffect].mode,
-            trail: baseConfig.trail || this.effectConfigs[this.currentEffect].trail,
-            damping: baseConfig.damping || config.PHYSICS.DEFAULT_DAMPING
-        };
+        // 爆発パーティクルの場合はexplosionファクトリーを使用
+        if (baseConfig.followPath || baseConfig.isExplosion) {
+            const type = baseConfig.followPath ? 'pathExplosion' : 'explosion';
+            return this.particleFactoryManager.createConfig(type, baseConfig);
+        }
         
-        return Object.assign(defaultConfig, baseConfig);
+        // 通常のパーティクルはbasicファクトリーを使用
+        return this.particleFactoryManager.createConfig('basic', baseConfig);
     }
     
     /**
-     * パーティクルの作成（オブジェクトプール使用）
+     * パーティクルの作成（ファクトリーシステムとオブジェクトプール使用）
      * @param {number} x - X座標
      * @param {number} y - Y座標  
      * @param {Object} config - パーティクル設定
      * @returns {Particle|null} 作成されたパーティクル
+     * @deprecated 新しいファクトリーシステムの直接使用を推奨
      */
     createParticle(x, y, config) {
         return ErrorUtils.safeExecute(() => {
@@ -192,8 +196,18 @@ class ParticleSystem {
                 // 既存パーティクルを再初期化
                 particle.reset(x, y, config);
             } else {
-                // 新しいパーティクルを作成
-                particle = new Particle(x, y, config);
+                // パーティクルのタイプを判定
+                let type = 'basic';
+                if (config.followPath) {
+                    type = 'pathExplosion';
+                } else if (config.isExplosion) {
+                    type = 'explosion';
+                } else if (config.trail && config.mode === 'trail') {
+                    type = 'trail';
+                }
+                
+                // ファクトリーシステムを使用して新しいパーティクルを作成
+                particle = this.particleFactoryManager.createParticle(type, x, y, config);
             }
             
             return particle;
@@ -237,33 +251,18 @@ class ParticleSystem {
      * 爆発エフェクトの作成
      * @param {number} x - 爆発の中心X座標
      * @param {number} y - 爆発の中心Y座標
-     * @returns {boolean} 爆発エフェクトの作成に成功したかどうか
+     * @param {Object} options - 追加オプション
+     * @returns {Promise<boolean>} 爆発エフェクトの作成に成功したかどうか
      */
-    createExplosion(x, y) {
-        return ErrorUtils.executeWithPerformanceMonitoring(() => {
-            // 座標の検証
-            if (!isFinite(x) || !isFinite(y) || isNaN(x) || isNaN(y)) {
-                throw new Error(`Invalid explosion coordinates: x=${x}, y=${y}`);
-            }
-            
-            const explosionConfig = Config.PARTICLES.EXPLOSION;
-            const numParticles = random(explosionConfig.PARTICLE_COUNT_RANGE.min, explosionConfig.PARTICLE_COUNT_RANGE.max);
-            const explosionForce = random(explosionConfig.FORCE_RANGE.min, explosionConfig.FORCE_RANGE.max);
-            
-            console.log(`Creating explosion at (${x.toFixed(1)}, ${y.toFixed(1)}) with ${Math.floor(numParticles)} particles`);
-            
-            // 爆発音の再生
-            this.playExplosionSound(x, y, explosionForce);
-            
-            // 爆発パーティクルの生成
-            const createdParticles = this.createExplosionParticles(x, y, numParticles, explosionForce);
-            
-            // 既存パーティクルへの影響
-            this.applyExplosionForceToExistingParticles(x, y, explosionForce);
-            
-            console.log(`✅ Explosion created: ${createdParticles} new particles`);
+    async createExplosion(x, y, options = {}) {
+        try {
+            const result = await this.explosionManager.createExplosion('basic', x, y, options, this);
+            console.log(`✅ Basic explosion created: ${result.particlesCreated} new particles`);
             return true;
-        }, 'ParticleSystem.createExplosion', 15);
+        } catch (error) {
+            console.error('Failed to create explosion:', error);
+            return false;
+        }
     }
     
     /**
@@ -271,45 +270,19 @@ class ParticleSystem {
      * @param {number} x - 爆発の中心X座標
      * @param {number} y - 爆発の中心Y座標
      * @param {Array} path - ドラッグパスの配列
-     * @returns {boolean} 爆発エフェクトの作成に成功したかどうか
+     * @param {Object} options - 追加オプション
+     * @returns {Promise<boolean>} 爆発エフェクトの作成に成功したかどうか
      */
-    createPathExplosion(x, y, path) {
-        return ErrorUtils.executeWithPerformanceMonitoring(() => {
-            // 座標の検証
-            if (!isFinite(x) || !isFinite(y) || isNaN(x) || isNaN(y)) {
-                throw new Error(`Invalid explosion coordinates: x=${x}, y=${y}`);
-            }
-            
-            if (!path || path.length < 2) {
-                throw new Error('Invalid path: need at least 2 points');
-            }
-            
-            const explosionConfig = Config.PARTICLES.EXPLOSION;
-            const numParticles = random(explosionConfig.PARTICLE_COUNT_RANGE.min * 1.5, explosionConfig.PARTICLE_COUNT_RANGE.max * 1.5);
-            const explosionForce = random(explosionConfig.FORCE_RANGE.min, explosionConfig.FORCE_RANGE.max);
-            
-            // パスの最後の方向を計算
-            const lastIndex = path.length - 1;
-            const prevIndex = Math.max(0, lastIndex - 5); // 最後の5点から方向を計算
-            const deltaX = path[lastIndex].x - path[prevIndex].x;
-            const deltaY = path[lastIndex].y - path[prevIndex].y;
-            const pathDirection = createVector(deltaX, deltaY).normalize();
-            const pathVelocity = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            console.log(`Creating path explosion at (${x.toFixed(1)}, ${y.toFixed(1)}) with ${Math.floor(numParticles)} particles`);
-            
-            // 爆発音の再生
-            this.playExplosionSound(x, y, explosionForce);
-            
-            // パスに沿った爆発パーティクルの生成
-            const createdParticles = this.createPathExplosionParticles(x, y, numParticles, explosionForce, pathDirection, pathVelocity, path);
-            
-            // 既存パーティクルへの影響
-            this.applyExplosionForceToExistingParticles(x, y, explosionForce);
-            
-            console.log(`✅ Path explosion created: ${createdParticles} new particles`);
+    async createPathExplosion(x, y, path, options = {}) {
+        try {
+            const pathOptions = { ...options, path };
+            const result = await this.explosionManager.createExplosion('path', x, y, pathOptions, this);
+            console.log(`✅ Path explosion created: ${result.particlesCreated} new particles`);
             return true;
-        }, 'ParticleSystem.createPathExplosion', 15);
+        } catch (error) {
+            console.error('Failed to create path explosion:', error);
+            return false;
+        }
     }
     
     /**
@@ -330,29 +303,30 @@ class ParticleSystem {
         for (let i = 0; i < numParticles; i++) {
             // パスの方向を基準にした角度の計算
             const baseAngle = atan2(pathDirection.y, pathDirection.x);
-            const spreadAngle = PI / 3; // 60度の広がり
+            const spreadAngle = Config.PARTICLES.PATH_EXPLOSION.SPREAD_ANGLE;
             const angle = baseAngle + random(-spreadAngle, spreadAngle);
             
             // パスの速度に応じた初期速度
-            const baseSpeed = explosionForce + pathVelocity * 0.5;
+            const velocityCoeff = Config.PARTICLES.PATH_EXPLOSION.VELOCITY_COEFFICIENT;
+            const baseSpeed = explosionForce + pathVelocity * velocityCoeff;
             const speed = random(baseSpeed * 0.5, baseSpeed);
             
             const particleConfig = this.createParticleConfig({
                 direction: { x: cos(angle), y: sin(angle) },
                 speed: speed,
-                size: random(4, 12),
-                hue: random(360),
+                size: random(Config.PARTICLES.PATH_EXPLOSION.SIZE_RANGE.min, Config.PARTICLES.PATH_EXPLOSION.SIZE_RANGE.max),
+                hue: random(Config.PARTICLES.APPEARANCE.HUE_RANGE),
                 saturation: 100,
                 brightness: 100,
                 alpha: 100,
-                lifespan: random(explosionConfig.LIFESPAN_RANGE.min * 1.2, explosionConfig.LIFESPAN_RANGE.max * 1.2),
+                lifespan: random(explosionConfig.LIFESPAN_RANGE.min * Config.PARTICLES.PATH_EXPLOSION.LIFESPAN_MULTIPLIER, explosionConfig.LIFESPAN_RANGE.max * Config.PARTICLES.PATH_EXPLOSION.LIFESPAN_MULTIPLIER),
                 mode: this.effectConfigs[this.currentEffect].mode,
                 trail: true,
                 // パスに沿った動きのための追加プロパティ
                 followPath: true,
                 pathData: this.simplifyPath(path),
                 pathProgress: 0,
-                pathInfluence: random(0.3, 0.7)
+                pathInfluence: random(Config.PARTICLES.PATH_FOLLOWING.INFLUENCE_RANGE.min, Config.PARTICLES.PATH_FOLLOWING.INFLUENCE_RANGE.max)
             });
             
             const particle = this.createParticle(x, y, particleConfig);
@@ -370,10 +344,11 @@ class ParticleSystem {
      * @returns {Array} 簡略化されたパス
      */
     simplifyPath(path) {
-        if (path.length <= 10) return [...path];
+        const threshold = Config.PARTICLES.PATH_FOLLOWING.SIMPLIFICATION_THRESHOLD;
+        if (path.length <= threshold) return [...path];
         
         const simplified = [];
-        const step = Math.floor(path.length / 10);
+        const step = Math.floor(path.length / threshold);
         
         for (let i = 0; i < path.length; i += step) {
             simplified.push({...path[i]});
@@ -421,8 +396,8 @@ class ParticleSystem {
             const particleConfig = this.createParticleConfig({
                 direction: { x: cos(angle), y: sin(angle) },
                 speed: speed,
-                size: random(4, 10),
-                hue: random(360),
+                size: random(explosionConfig.SIZE_RANGE?.min || 4, explosionConfig.SIZE_RANGE?.max || 10),
+                hue: random(Config.PARTICLES.APPEARANCE.HUE_RANGE),
                 saturation: 100,
                 brightness: 100,
                 alpha: 100,
@@ -741,6 +716,9 @@ class ParticleSystem {
     setEffect(effectNumber) {
         this.currentEffect = effectNumber;
         const config = this.effectConfigs[effectNumber];
+        
+        // ファクトリー管理システムにエフェクト設定を適用
+        this.particleFactoryManager.updateEffectConfig(config);
         
         // 既存のパーティクルのモードを更新
         this.particles.forEach(particle => {
