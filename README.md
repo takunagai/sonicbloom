@@ -117,10 +117,12 @@ p5-interactive-animation/
 ├── 📄 index.html                 # メインHTML（エントリーポイント）
 ├── 🎨 style.css                  # UIスタイル定義
 ├── 🖼️ sketch.js                  # p5.jsメインスケッチ（描画ループ）
-├── ⚙️ config.js                  # 設定値一元管理
+├── ⚙️ config.js                  # 設定値一元管理・マジックナンバー排除
 ├── 🛡️ errorHandler.js            # 統一エラーハンドリング
 ├── 🔧 utils.js                   # ユーティリティ関数群
 ├── 🎵 soundSystem.js             # 音響システム（Web Audio API）
+├── 💥 explosionStrategy.js       # 爆発エフェクト戦略パターン
+├── 🏭 particleFactory.js         # パーティクル生成ファクトリーパターン
 ├── ✨ particleSystem.js          # パーティクル管理システム
 ├── 🔴 particle.js                # 個別パーティクル物理演算
 ├── 🌊 dragTrail.js               # ドラッグ軌跡管理
