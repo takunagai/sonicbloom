@@ -1,208 +1,333 @@
-// 感情を動かす調和の取れたサウンドシステム
-// 音楽理論（ペンタトニックスケール、黄金比、倍音構造）に基づいた音生成
-
+/**
+ * 感情を動かす調和の取れたサウンドシステム
+ * 音楽理論（ペンタトニックスケール、黄金比、倍音構造）に基づいた音生成
+ * 統一されたエラーハンドリングとパフォーマンス最適化を実装
+ */
 class SoundSystem {
-    constructor() {
+    /**
+     * SoundSystemのコンストラクタ
+     * @param {Object} options - 初期化オプション
+     */
+    constructor(options = {}) {
+        try {
+            // 設定値の初期化（Config使用）
+            const soundConfig = Config.SOUND;
+            
+            // 基本設定
+            this.isEnabled = options.enabled !== undefined ? options.enabled : true;
+            this.masterVolume = options.masterVolume || soundConfig.DEFAULT_MASTER_VOLUME;
+            this.isMuted = options.muted || false;
+            this.isInitialized = false;
+            this.p5SoundReady = false;
+            
+            // 音楽理論パラメータ（Configから取得）
+            this.goldenRatio = soundConfig.GOLDEN_RATIO;
+            this.baseFrequency = soundConfig.BASE_FREQUENCY;
+            this.pentatonicRatios = soundConfig.PENTATONIC_RATIOS;
+            this.defaultHarmonicCount = soundConfig.DEFAULT_HARMONIC_COUNT;
+            
+            // エフェクト設定
+            this.effectParams = soundConfig.EFFECT_TYPES;
+            
+            // オーディオエフェクト
+            this.audioEffects = {
+                reverb: null,
+                delay: null,
+                filter: null,
+                compressor: null
+            };
+            
+            // アンビエント要素
+            this.ambientComponents = {
+                oscillator: null,
+                gain: null,
+                heartbeatInterval: null
+            };
+            
+            // アクティブサウンドの管理
+            this.activeSounds = new Map();
+            this.maxActiveSounds = soundConfig.MAX_ACTIVE_SOUNDS;
+            this.soundIdCounter = 0;
+            
+            // パフォーマンス監視
+            this.performanceStats = {
+                totalSoundsCreated: 0,
+                activeSoundCount: 0,
+                lastCleanupTime: 0,
+                initializationTime: 0,
+                audioContextStartTime: 0
+            };
+            
+            console.log('✅ SoundSystem constructor completed');
+        } catch (error) {
+            errorHandler.handleError(new AppError(
+                `SoundSystem initialization failed: ${error.message}`,
+                ErrorCategory.SOUND,
+                ErrorLevel.ERROR,
+                { options, error }
+            ));
+            
+            // フォールバック初期化
+            this.initializeFallbackSettings();
+        }
+    }
+    
+    /**
+     * フォールバック設定の初期化
+     */
+    initializeFallbackSettings() {
         this.isEnabled = true;
         this.masterVolume = 0.7;
         this.isMuted = false;
         this.isInitialized = false;
-        
-        // 音楽理論パラメータ
-        this.goldenRatio = 1.618;
-        this.baseFrequency = 432; // A4 = 432Hz（調和の取れた周波数）
-        
-        // ペンタトニックスケール（C, D, E, G, A）
-        this.pentatonicRatios = [
-            1,      // C
-            9/8,    // D
-            5/4,    // E
-            3/2,    // G
-            5/3     // A
-        ];
-        
-        // エフェクト別の音響パラメータ
-        this.effectParams = {
-            1: { // 爆発エフェクト
-                type: 'explosion',
-                attackTime: 0.01,
-                decayTime: 0.5,
-                sustainLevel: 0.2,
-                releaseTime: 1,
-                reverbWet: 0.5
-            },
-            2: { // トレイルエフェクト
-                type: 'trail',
-                attackTime: 0.3,
-                decayTime: 0.5,
-                sustainLevel: 0.4,
-                releaseTime: 2,
-                delayTime: 0.3,
-                delayFeedback: 0.4
-            },
-            3: { // 虹色パルス
-                type: 'rainbow',
-                attackTime: 0.1,
-                decayTime: 0.3,
-                sustainLevel: 0.5,
-                releaseTime: 0.8,
-                filterFreq: 800,
-                filterRes: 15
-            },
-            4: { // 重力シミュレーション
-                type: 'gravity',
-                attackTime: 0.05,
-                decayTime: 0.2,
-                sustainLevel: 0.1,
-                releaseTime: 0.3,
-                pitchBendAmount: 0.5
-            },
-            5: { // 渦巻きエフェクト
-                type: 'swirl',
-                attackTime: 0.2,
-                decayTime: 0.4,
-                sustainLevel: 0.3,
-                releaseTime: 1.5,
-                panningRange: 0.8
-            }
-        };
-        
-        // オーディオエフェクト
-        this.reverb = null;
-        this.delay = null;
-        this.filter = null;
-        this.compressor = null;
-        
-        // アンビエント要素
-        this.ambientOsc = null;
-        this.ambientGain = null;
-        this.rhythmPattern = null;
-        this.heartbeatInterval = null;
-        
-        // パーティクル音マッピング
-        this.particleSounds = new Map();
-        this.maxActiveSounds = 20;
-        
-        // 初期化フラグ
         this.p5SoundReady = false;
+        this.goldenRatio = 1.618;
+        this.baseFrequency = 432;
+        this.pentatonicRatios = [1, 9/8, 5/4, 3/2, 5/3];
+        this.defaultHarmonicCount = 5;
+        this.activeSounds = new Map();
+        this.maxActiveSounds = 20;
+        this.soundIdCounter = 0;
+        this.audioEffects = {};
+        this.ambientComponents = {};
+        this.performanceStats = {
+            totalSoundsCreated: 0, activeSoundCount: 0, lastCleanupTime: 0,
+            initializationTime: 0, audioContextStartTime: 0
+        };
     }
     
-    // システムの初期化
+    /**
+     * システムの初期化
+     * p5.soundの準備とオーディオエフェクトの設定
+     */
     init() {
-        console.log('🔧 SoundSystem.init() called, isInitialized:', this.isInitialized);
-        
-        if (this.isInitialized) return;
-        
-        try {
-            // p5.soundのコンテキストが存在するか確認
+        return ErrorUtils.executeWithPerformanceMonitoring(() => {
+            const startTime = performance.now();
+            
+            console.log('🔧 SoundSystem.init() called, isInitialized:', this.isInitialized);
+            
+            if (this.isInitialized) return true;
+            
+            // p5.soundの可用性確認
+            if (!this.checkP5SoundAvailability()) {
+                this.scheduleRetryInit();
+                return false;
+            }
+            
+            // オーディオコンテキストの状態確認
+            const audioContext = this.getAudioContext();
+            if (!this.validateAudioContext(audioContext)) {
+                return false;
+            }
+            
+            // オーディオエフェクトの初期化
+            this.initializeAudioEffects();
+            
+            // アンビエントサウンドの準備
+            this.initializeAmbientSound();
+            
+            // マスターボリューム設定
+            this.applyMasterVolume();
+            
+            this.isInitialized = true;
+            this.p5SoundReady = true;
+            this.performanceStats.initializationTime = performance.now() - startTime;
+            
+            console.log('🎉 SoundSystem initialized successfully!');
+            this.updateSoundStatus('🟢 サウンドシステム: 初期化完了', Config.UI.STATUS_COLORS.SUCCESS);
+            
+            return true;
+        }, 'SoundSystem.init', 100);
+    }
+    
+    /**
+     * p5.soundの可用性確認
+     * @returns {boolean} 利用可能かどうか
+     */
+    checkP5SoundAvailability() {
+        return ErrorUtils.safeExecute(() => {
             console.log('🔍 Checking p5.sound availability...');
             console.log('- typeof p5:', typeof p5);
             console.log('- p5.Reverb exists:', typeof p5 !== 'undefined' && !!p5.Reverb);
             console.log('- p5.Oscillator exists:', typeof p5 !== 'undefined' && !!p5.Oscillator);
             
-            if (typeof p5 === 'undefined' || !p5.Reverb) {
-                console.warn('❌ p5.sound is not ready yet. Retrying in 100ms...');
-                setTimeout(() => this.init(), 100);
-                return;
+            return typeof p5 !== 'undefined' && p5.Reverb && p5.Oscillator;
+        }, 'SoundSystem.checkP5SoundAvailability', false);
+    }
+    
+    /**
+     * 初期化の再試行をスケジュール
+     */
+    scheduleRetryInit() {
+        const retryInterval = Config.SOUND.INITIALIZATION.P5_READY_CHECK_INTERVAL;
+        console.warn(`❌ p5.sound is not ready yet. Retrying in ${retryInterval}ms...`);
+        setTimeout(() => this.init(), retryInterval);
+    }
+    
+    /**
+     * オーディオコンテキストの取得と検証
+     * @returns {AudioContext|null} オーディオコンテキスト
+     */
+    getAudioContext() {
+        return ErrorUtils.safeExecute(() => {
+            if (typeof getAudioContext !== 'function') {
+                throw new Error('getAudioContext function not available');
+            }
+            return getAudioContext();
+        }, 'SoundSystem.getAudioContext', null);
+    }
+    
+    /**
+     * オーディオコンテキストの状態検証
+     * @param {AudioContext} audioContext - オーディオコンテキスト
+     * @returns {boolean} 有効かどうか
+     */
+    validateAudioContext(audioContext) {
+        return ErrorUtils.safeExecute(() => {
+            if (!audioContext) {
+                throw new Error('Audio context not available');
             }
             
-            // オーディオコンテキストの詳細状態確認
-            const audioContext = getAudioContext();
             console.log('🔊 Audio Context Details:');
             console.log('- State:', audioContext.state);
             console.log('- Sample Rate:', audioContext.sampleRate);
             console.log('- Current Time:', audioContext.currentTime);
             
-            // オーディオコンテキストが停止している場合はユーザーインタラクションまで待機
             if (audioContext.state !== 'running') {
                 console.log('⏸️ Audio context is not running. Will initialize on user interaction.');
-                this.isInitialized = false;
-                this.p5SoundReady = false;
-                this.updateSoundStatus('🟡 サウンドシステム: クリックして開始', '#fff8e1');
-                return;
+                this.updateSoundStatus('🟡 サウンドシステム: クリックして開始', Config.UI.STATUS_COLORS.WARNING);
+                return false;
             }
             
-            // マスターボリューム設定
-            console.log('🔊 Setting master volume to:', this.masterVolume);
-            this.setP5MasterVolume(this.masterVolume);
-            console.log('✅ Master volume set');
+            return true;
+        }, 'SoundSystem.validateAudioContext', false);
+    }
+    
+    /**
+     * オーディオエフェクトの初期化
+     * リバーブ、ディレイ、フィルター、コンプレッサーを設定
+     */
+    initializeAudioEffects() {
+        return ErrorUtils.safeExecute(() => {
+            const effectsConfig = Config.SOUND.EFFECTS;
             
             // リバーブの初期化
             console.log('🔧 Initializing Reverb...');
-            this.reverb = new p5.Reverb();
-            this.reverb.set(3, 2, false);
+            this.audioEffects.reverb = new p5.Reverb();
+            const reverbSettings = effectsConfig.REVERB;
+            this.audioEffects.reverb.set(reverbSettings.duration, reverbSettings.decay, reverbSettings.reverse);
             console.log('✅ Reverb initialized');
             
             // ディレイの初期化
             console.log('🔧 Initializing Delay...');
-            this.delay = new p5.Delay();
-            this.delay.setType('pingPong');
+            this.audioEffects.delay = new p5.Delay();
+            this.audioEffects.delay.setType(effectsConfig.DELAY.type);
             console.log('✅ Delay initialized');
             
             // フィルターの初期化
             console.log('🔧 Initializing Filter...');
-            this.filter = new p5.BandPass();
+            this.audioEffects.filter = new p5.BandPass();
             console.log('✅ Filter initialized');
             
             // コンプレッサーの初期化
             console.log('🔧 Initializing Compressor...');
-            this.compressor = new p5.Compressor();
+            this.audioEffects.compressor = new p5.Compressor();
             console.log('✅ Compressor initialized');
             
-            // アンビエント要素の初期化
+        }, 'SoundSystem.initializeAudioEffects');
+    }
+    
+    /**
+     * アンビエントサウンドの初期化
+     * 基底音と心拍リズムを設定
+     */
+    initializeAmbientSound() {
+        return ErrorUtils.safeExecute(() => {
+            const ambientConfig = Config.SOUND.AUDIO_PARAMS.AMBIENT;
+            
             console.log('🔧 Initializing Ambient Sound...');
-            this.initAmbientSound();
+            
+            // 基底音（ドローン）の生成
+            this.ambientComponents.oscillator = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
+            const octaveShift = Math.pow(2, ambientConfig.octaveShift);
+            this.ambientComponents.oscillator.freq(this.baseFrequency * octaveShift);
+            
+            this.ambientComponents.gain = new p5.Gain();
+            this.ambientComponents.oscillator.disconnect();
+            this.ambientComponents.oscillator.connect(this.ambientComponents.gain);
+            this.ambientComponents.gain.connect(this.audioEffects.reverb);
+            
+            // 心拍リズムの開始
+            this.startHeartbeatRhythm();
+            
             console.log('✅ Ambient Sound initialized');
-            
-            this.isInitialized = true;
-            this.p5SoundReady = true;
-            
-            console.log('🎉 SoundSystem initialized successfully!');
-            console.log('🔊 Current master volume:', this.masterVolume);
-            console.log('🔇 Is muted:', this.isMuted);
-            console.log('⚡ Is enabled:', this.isEnabled);
-            
-            // UIステータス更新
-            this.updateSoundStatus('🟢 サウンドシステム: 初期化完了', '#e8f5e8');
-        } catch (error) {
-            console.error('Failed to initialize SoundSystem:', error);
-            this.isEnabled = false;
-            this.updateSoundStatus('🔴 サウンドシステム: 初期化エラー', '#ffeaea');
-        }
+        }, 'SoundSystem.initializeAmbientSound');
     }
     
-    // ユーザーインタラクション時の初期化
+    /**
+     * マスターボリュームの適用
+     */
+    applyMasterVolume() {
+        return ErrorUtils.safeExecute(() => {
+            console.log('🔊 Setting master volume to:', this.masterVolume);
+            this.setP5MasterVolume(this.masterVolume);
+            console.log('✅ Master volume set');
+        }, 'SoundSystem.applyMasterVolume');
+    }
+    
+    /**
+     * ユーザーインタラクション時の初期化
+     * オーディオコンテキストの開始とテスト音再生
+     */
     initOnUserGesture() {
-        console.log('🎤 Initializing sound on user gesture...');
-        this.updateSoundStatus('🟡 サウンドシステム: 音声コンテキスト開始中...', '#fff8e1');
-        
-        // より確実なオーディオコンテキスト開始
-        this.startAudioContext().then(() => {
-            console.log('✅ Audio context started successfully');
+        return ErrorUtils.executeWithPerformanceMonitoring(() => {
+            const startTime = performance.now();
             
-            if (!this.isInitialized) {
-                this.init();
-            }
+            console.log('🎤 Initializing sound on user gesture...');
+            this.updateSoundStatus('🟡 サウンドシステム: 音声コンテキスト開始中...', Config.UI.STATUS_COLORS.WARNING);
             
-            this.updateSoundStatus('🟢 サウンドシステム: テスト音再生中...', '#e8f5e8');
-            
-            // テスト音を再生（デバッグ用）
-            this.playTestSound();
-            
-            setTimeout(() => {
-                this.startAmbient();
-                this.updateSoundStatus('🎵 サウンドシステム: 動作中', '#e8f5e8');
-            }, 500);
-            
-        }).catch(error => {
-            console.error('❌ Failed to start audio:', error);
-            this.updateSoundStatus('🔴 サウンドシステム: 音声コンテキストエラー', '#ffeaea');
-        });
+            this.startAudioContext().then(() => {
+                console.log('✅ Audio context started successfully');
+                this.performanceStats.audioContextStartTime = performance.now() - startTime;
+                
+                if (!this.isInitialized) {
+                    this.init();
+                }
+                
+                this.updateSoundStatus('🟢 サウンドシステム: テスト音再生中...', Config.UI.STATUS_COLORS.SUCCESS);
+                
+                // テスト音の再生
+                this.playTestSound();
+                
+                // アンビエントサウンドの開始（遅延）
+                const ambientDelay = Config.SOUND.INITIALIZATION.AMBIENT_START_DELAY;
+                setTimeout(() => {
+                    this.startAmbient();
+                    this.updateSoundStatus('🎵 サウンドシステム: 動作中', Config.UI.STATUS_COLORS.SUCCESS);
+                }, ambientDelay);
+                
+            }).catch(error => {
+                errorHandler.handleError(new AppError(
+                    `Failed to start audio: ${error.message}`,
+                    ErrorCategory.SOUND,
+                    ErrorLevel.ERROR,
+                    { error }
+                ));
+                this.updateSoundStatus('🔴 サウンドシステム: 音声コンテキストエラー', Config.UI.STATUS_COLORS.ERROR);
+            });
+        }, 'SoundSystem.initOnUserGesture', 200);
     }
     
-    // より確実なオーディオコンテキスト開始
+    /**
+     * オーディオコンテキストの開始
+     * @returns {Promise<AudioContext>} 開始されたオーディオコンテキスト
+     */
     async startAudioContext() {
-        const audioContext = getAudioContext();
+        const audioContext = this.getAudioContext();
+        if (!audioContext) {
+            throw new Error('Audio context not available');
+        }
+        
         console.log('🔊 Current audio context state:', audioContext.state);
         
         // p5.soundのuserStartAudioを試行
@@ -238,65 +363,81 @@ class SoundSystem {
         return audioContext;
     }
     
-    // サウンドステータスの表示更新
-    updateSoundStatus(message, backgroundColor = '#f0f0f0') {
-        const statusElement = document.getElementById('sound-status-text');
-        const statusContainer = document.getElementById('sound-status');
-        
-        if (statusElement) {
-            statusElement.textContent = message;
-        }
-        
-        if (statusContainer) {
-            statusContainer.style.backgroundColor = backgroundColor;
-        }
-        
-        console.log('📊 Sound status updated:', message);
+    /**
+     * サウンドステータスの表示更新
+     * @param {string} message - 表示メッセージ
+     * @param {string} backgroundColor - 背景色
+     */
+    updateSoundStatus(message, backgroundColor = Config.UI.STATUS_COLORS.INFO) {
+        return ErrorUtils.safeExecute(() => {
+            const statusElement = document.getElementById('sound-status-text');
+            const statusContainer = document.getElementById('sound-status');
+            
+            if (statusElement) {
+                statusElement.textContent = message;
+            }
+            
+            if (statusContainer) {
+                statusContainer.style.backgroundColor = backgroundColor;
+            }
+            
+            console.log('📊 Sound status updated:', message);
+        }, 'SoundSystem.updateSoundStatus');
     }
     
-    // p5.soundのマスターボリューム設定（バージョン対応）
+    /**
+     * p5.soundのマスターボリューム設定（バージョン対応）
+     * @param {number} volume - ボリューム値（0-1）
+     * @returns {boolean} 設定成功かどうか
+     */
     setP5MasterVolume(volume) {
-        console.log('🔊 Attempting to set p5.sound master volume:', volume);
-        
-        // p5.sound 1.9.0+では outputVolume、旧版では masterVolume
-        if (typeof outputVolume === 'function') {
-            console.log('✅ Using outputVolume (p5.sound 1.9.0+)');
-            outputVolume(volume);
-            return true;
-        } else if (typeof masterVolume === 'function') {
-            console.log('✅ Using masterVolume (p5.sound legacy)');
-            masterVolume(volume);
-            return true;
-        } else if (typeof window.outputVolume === 'function') {
-            console.log('✅ Using window.outputVolume');
-            window.outputVolume(volume);
-            return true;
-        } else if (typeof window.masterVolume === 'function') {
-            console.log('✅ Using window.masterVolume');
-            window.masterVolume(volume);
-            return true;
-        } else {
+        return ErrorUtils.safeExecute(() => {
+            console.log('🔊 Attempting to set p5.sound master volume:', volume);
+            
+            // p5.sound 1.9.0+では outputVolume、旧版では masterVolume
+            const volumeSetters = [
+                { name: 'outputVolume', func: outputVolume },
+                { name: 'masterVolume', func: masterVolume },
+                { name: 'window.outputVolume', func: window.outputVolume },
+                { name: 'window.masterVolume', func: window.masterVolume }
+            ];
+            
+            for (const setter of volumeSetters) {
+                if (typeof setter.func === 'function') {
+                    console.log(`✅ Using ${setter.name}`);
+                    setter.func(volume);
+                    return true;
+                }
+            }
+            
             console.warn('❌ No p5.sound volume function found, volume control disabled');
             return false;
-        }
+        }, 'SoundSystem.setP5MasterVolume', false);
     }
     
-    // シンプルなテスト音（デバッグ用）
+    /**
+     * テスト音の再生（デバッグ用）
+     * オーディオシステムの動作確認
+     */
     playTestSound() {
-        console.log('🧪 Playing test sound...');
-        
-        if (!this.isEnabled || this.isMuted) {
-            console.log('❌ Test sound skipped due to state (enabled:', this.isEnabled, 'muted:', this.isMuted, ')');
-            return;
-        }
-        
-        try {
-            const testOsc = new p5.Oscillator('sine');
+        return ErrorUtils.safeExecute(() => {
+            console.log('🧪 Playing test sound...');
+            
+            if (!this.isEnabled || this.isMuted) {
+                console.log('❌ Test sound skipped due to state (enabled:', this.isEnabled, 'muted:', this.isMuted, ')');
+                return;
+            }
+            
+            const testConfig = Config.SOUND.DEBUG;
+            const testDuration = Config.SOUND.INITIALIZATION.TEST_SOUND_DURATION;
+            const envelope = Config.SOUND.AUDIO_PARAMS.HEARTBEAT; // テスト用のエンベロープとして流用
+            
+            const testOsc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
             const testEnv = new p5.Envelope();
             
-            console.log('🔊 p5.sound test: Creating 440Hz sine wave');
-            testOsc.freq(440); // A4
-            testEnv.setADSR(0.1, 0.3, 0.3, 0.5);
+            console.log(`🔊 p5.sound test: Creating ${testConfig.TEST_FREQUENCY}Hz sine wave`);
+            testOsc.freq(testConfig.TEST_FREQUENCY);
+            testEnv.setADSR(envelope.attack || 0.1, envelope.decay || 0.3, envelope.sustain || 0.3, envelope.release || 0.5);
             testEnv.setRange(0.3, 0);
             
             console.log('▶️ Starting p5 test oscillator');
@@ -305,119 +446,134 @@ class SoundSystem {
             
             setTimeout(() => {
                 console.log('⏹️ Stopping p5 test oscillator');
-                try {
-                    testOsc.stop();
-                    testOsc.dispose();
-                    testEnv.dispose();
-                    console.log('✅ p5.sound test completed successfully');
-                } catch (cleanupError) {
-                    console.log('⚠️ p5.sound test cleanup error (harmless):', cleanupError);
-                }
-            }, 1000);
+                this.cleanupAudioNode(testOsc, testEnv, 'test sound');
+                console.log('✅ p5.sound test completed successfully');
+            }, testDuration);
             
-        } catch (error) {
-            console.error('❌ Error in p5.sound test:', error);
-        }
+        }, 'SoundSystem.playTestSound');
     }
     
-    // アンビエントサウンドの初期化
-    initAmbientSound() {
-        // 基底音（ドローン）の生成
-        this.ambientOsc = new p5.Oscillator('sine');
-        this.ambientOsc.freq(this.baseFrequency / 4); // 2オクターブ下
-        this.ambientGain = new p5.Gain();
-        this.ambientOsc.disconnect();
-        this.ambientOsc.connect(this.ambientGain);
-        this.ambientGain.connect(this.reverb);
-        
-        // 心拍リズムの開始
-        this.startHeartbeatRhythm();
-    }
-    
-    // 心拍リズムの生成（60-80 BPM）
+    /**
+     * 心拍リズムの開始
+     * 60-80 BPMの生体リズムに基づく
+     */
     startHeartbeatRhythm() {
-        if (!this.p5SoundReady) return;
-        
-        const bpm = 70;
-        const interval = 60000 / bpm;
-        
-        // 既存のインターバルをクリア
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-        }
-        
-        this.heartbeatInterval = setInterval(() => {
-            if (this.isEnabled && !this.isMuted && this.p5SoundReady) {
-                this.playHeartbeat();
+        return ErrorUtils.safeExecute(() => {
+            if (!this.p5SoundReady) return;
+            
+            const bpm = Config.SOUND.HEARTBEAT_BPM;
+            const interval = 60000 / bpm;
+            
+            // 既存のインターバルをクリア
+            if (this.ambientComponents.heartbeatInterval) {
+                clearInterval(this.ambientComponents.heartbeatInterval);
             }
-        }, interval);
+            
+            this.ambientComponents.heartbeatInterval = setInterval(() => {
+                if (this.isEnabled && !this.isMuted && this.p5SoundReady) {
+                    this.playHeartbeat();
+                }
+            }, interval);
+            
+            console.log(`🫀 Heartbeat rhythm started at ${bpm} BPM`);
+        }, 'SoundSystem.startHeartbeatRhythm');
     }
     
-    // 心拍音の再生
+    /**
+     * 心拍音の再生
+     * 低周波での短い音響パルス
+     */
     playHeartbeat() {
-        try {
-            const osc = new p5.Oscillator('sine');
+        return ErrorUtils.safeExecute(() => {
+            const heartbeatConfig = Config.SOUND.AUDIO_PARAMS.HEARTBEAT;
+            
+            const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
             const env = new p5.Envelope();
             
-            osc.freq(60);
+            osc.freq(heartbeatConfig.frequency);
             env.setADSR(0.01, 0.1, 0.2, 0.1);
-            env.setRange(0.1, 0);
+            env.setRange(heartbeatConfig.volume, 0);
             
             osc.start();
             env.play(osc);
             
             setTimeout(() => {
-                try {
-                    osc.stop();
-                    osc.dispose();
-                    env.dispose();
-                } catch (e) {
-                    // クリーンアップ時のエラーは無視
-                }
-            }, 200);
-        } catch (error) {
-            console.error('Error in playHeartbeat:', error);
-        }
+                this.cleanupAudioNode(osc, env, 'heartbeat');
+            }, heartbeatConfig.duration);
+        }, 'SoundSystem.playHeartbeat');
     }
     
-    // ペンタトニックスケールの周波数を取得
+    /**
+     * ペンタトニックスケールの周波数を取得
+     * @param {number} index - スケール内のインデックス
+     * @param {number} octave - オクターブシフト
+     * @returns {number} 周波数（Hz）
+     */
     getPentatonicFrequency(index, octave = 0) {
-        const ratio = this.pentatonicRatios[index % this.pentatonicRatios.length];
-        const octaveMultiplier = Math.pow(2, octave);
-        return this.baseFrequency * ratio * octaveMultiplier;
+        return ErrorUtils.safeExecute(() => {
+            if (!isFinite(index) || !isFinite(octave)) {
+                throw new Error(`Invalid parameters: index=${index}, octave=${octave}`);
+            }
+            
+            const ratio = this.pentatonicRatios[index % this.pentatonicRatios.length];
+            const octaveMultiplier = Math.pow(2, octave);
+            return this.baseFrequency * ratio * octaveMultiplier;
+        }, 'SoundSystem.getPentatonicFrequency', this.baseFrequency);
     }
     
-    // 倍音構造を持つ音色の生成
-    createHarmonicOscillator(fundamental, harmonicCount = 5) {
-        const oscillators = [];
-        const gains = [];
-        
-        for (let i = 0; i < harmonicCount; i++) {
-            const osc = new p5.Oscillator('sine');
-            const gain = new p5.Gain();
+    /**
+     * 倍音構造を持つオシレーターの作成
+     * @param {number} fundamental - 基本周波数
+     * @param {number} harmonicCount - 倍音数
+     * @returns {Object} オシレーターと音量制御のセット
+     */
+    createHarmonicOscillator(fundamental, harmonicCount = null) {
+        return ErrorUtils.safeExecute(() => {
+            if (!isFinite(fundamental) || fundamental <= 0) {
+                throw new Error(`Invalid fundamental frequency: ${fundamental}`);
+            }
             
-            // 倍音の周波数と振幅
-            const harmonic = i + 1;
-            const freq = fundamental * harmonic;
-            const amp = 1 / (harmonic * this.goldenRatio);
+            const count = harmonicCount || this.defaultHarmonicCount;
+            const oscillators = [];
+            const gains = [];
             
-            osc.freq(freq);
-            gain.setInput(osc);
-            gain.amp(amp);
+            for (let i = 0; i < count; i++) {
+                const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
+                const gain = new p5.Gain();
+                
+                // 倍音の周波数と振幅
+                const harmonic = i + 1;
+                const freq = fundamental * harmonic;
+                const amp = 1 / (harmonic * this.goldenRatio);
+                
+                osc.freq(freq);
+                gain.setInput(osc);
+                gain.amp(amp);
+                
+                oscillators.push(osc);
+                gains.push(gain);
+            }
             
-            oscillators.push(osc);
-            gains.push(gain);
-        }
-        
-        return { oscillators, gains };
+            return { oscillators, gains };
+        }, 'SoundSystem.createHarmonicOscillator', { oscillators: [], gains: [] });
     }
     
-    // エフェクトサウンドの再生
+    /**
+     * エフェクトサウンドの再生
+     * @param {number} effectType - エフェクトタイプ（1-5）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度（0-1）
+     */
     playEffectSound(effectType, x, y, intensity = 1) {
-        if (!this.isEnabled || this.isMuted || !this.p5SoundReady) return;
-        
-        try {
-            // アクティブな音の数を制限（実装簡略化）
+        return ErrorUtils.executeWithPerformanceMonitoring(() => {
+            if (!this.isEnabled || this.isMuted || !this.p5SoundReady) return;
+            
+            // 座標とパラメータの検証
+            if (!this.validateSoundParameters(effectType, x, y, intensity)) return;
+            
+            // アクティブサウンド数の制限
+            if (!this.checkActiveSoundLimit()) return;
             
             const params = this.effectParams[effectType];
             if (!params) {
@@ -441,39 +597,94 @@ class SoundSystem {
                 case 'swirl':
                     this.playSwirlSound(x, y, intensity);
                     break;
+                default:
+                    console.warn(`Unhandled effect type: ${params.type}`);
             }
-        } catch (error) {
-            console.error('Error playing effect sound:', error);
-        }
+        }, 'SoundSystem.playEffectSound', 20);
     }
     
-    // 爆発音の生成
+    /**
+     * サウンドパラメータの検証
+     * @param {number} effectType - エフェクトタイプ
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度
+     * @returns {boolean} 有効かどうか
+     */
+    validateSoundParameters(effectType, x, y, intensity) {
+        return ErrorUtils.safeExecute(() => {
+            const params = [effectType, x, y, intensity];
+            for (const param of params) {
+                if (!isFinite(param) || isNaN(param)) {
+                    errorHandler.handleError(new AppError(
+                        'Invalid sound parameters',
+                        ErrorCategory.SOUND,
+                        ErrorLevel.WARN,
+                        { effectType, x, y, intensity }
+                    ));
+                    return false;
+                }
+            }
+            return true;
+        }, 'SoundSystem.validateSoundParameters', false);
+    }
+    
+    /**
+     * アクティブサウンド数の制限チェック
+     * @returns {boolean} 再生可能かどうか
+     */
+    checkActiveSoundLimit() {
+        if (this.activeSounds.size >= this.maxActiveSounds) {
+            console.debug(`Active sound limit reached: ${this.activeSounds.size}`);
+            this.performSoundCleanup();
+            return this.activeSounds.size < this.maxActiveSounds;
+        }
+        return true;
+    }
+    
+    /**
+     * 爆発音の生成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度
+     */
     playExplosionSound(x, y, intensity) {
-        try {
+        return ErrorUtils.safeExecute(() => {
+            const explosionConfig = Config.SOUND.AUDIO_PARAMS.EXPLOSION;
+            const mappingConfig = Config.SOUND.MAPPING;
+            
             // 低周波の衝撃音
-            const bassOsc = new p5.Oscillator('sawtooth');
+            const bassOsc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SAWTOOTH);
             const bassEnv = new p5.Envelope();
             
-            bassOsc.freq(40 + random(0, 20));
-            bassEnv.setADSR(0.01, 0.3, 0.1, 1);
-            bassEnv.setRange(0.5 * intensity, 0);
+            const bassFreq = explosionConfig.bassFreqRange.min + 
+                           random(0, explosionConfig.bassFreqRange.max - explosionConfig.bassFreqRange.min);
+            bassOsc.freq(bassFreq);
+            
+            const explosionEnv = this.effectParams[1].envelope;
+            bassEnv.setADSR(explosionEnv.attack, explosionEnv.decay, explosionEnv.sustain, explosionEnv.release);
+            bassEnv.setRange(explosionConfig.volumeBase * intensity, 0);
             
             // 高周波の煌めき
-            const shimmerOsc = new p5.Noise('white');
+            const shimmerOsc = new p5.Noise(Config.SOUND.WAVEFORMS.WHITE_NOISE);
             const shimmerEnv = new p5.Envelope();
             const shimmerFilter = new p5.HighPass();
             
-            shimmerFilter.freq(2000);
+            shimmerFilter.freq(Config.SOUND.EFFECTS.HIGH_PASS.frequency);
             shimmerOsc.disconnect();
             shimmerOsc.connect(shimmerFilter);
-            shimmerFilter.connect(this.reverb);
+            shimmerFilter.connect(this.audioEffects.reverb);
             
             shimmerEnv.setADSR(0.01, 0.1, 0.05, 0.5);
             shimmerEnv.setRange(0.3 * intensity, 0);
             
             // パンニング設定
-            const pan = map(x, 0, width, -1, 1);
+            const pan = map(x, 0, width, mappingConfig.PAN_RANGE.min, mappingConfig.PAN_RANGE.max);
             bassOsc.pan(pan);
+            
+            // サウンドID生成と追跡
+            const soundId = this.generateSoundId('explosion');
+            this.trackActiveSound(soundId, [bassOsc, shimmerOsc, bassEnv, shimmerEnv, shimmerFilter]);
             
             // 再生
             bassOsc.start();
@@ -483,178 +694,228 @@ class SoundSystem {
             
             // クリーンアップ
             setTimeout(() => {
-                try {
-                    bassOsc.stop();
-                    shimmerOsc.stop();
-                    bassOsc.dispose();
-                    shimmerOsc.dispose();
-                    bassEnv.dispose();
-                    shimmerEnv.dispose();
-                    shimmerFilter.dispose();
-                } catch (e) {
-                    // クリーンアップ時のエラーは無視
-                }
-            }, 2000);
-        } catch (error) {
-            console.error('Error in playExplosionSound:', error);
-        }
+                this.cleanupSoundById(soundId);
+            }, explosionConfig.cleanupDelay);
+            
+        }, 'SoundSystem.playExplosionSound');
     }
     
-    // トレイル音の生成
+    /**
+     * トレイル音の生成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度
+     */
     playTrailSound(x, y, intensity) {
-        const noteIndex = floor(random(5));
-        const octave = floor(random(-1, 2));
-        const freq = this.getPentatonicFrequency(noteIndex, octave);
-        
-        const osc = new p5.Oscillator('triangle');
-        const env = new p5.Envelope();
-        
-        osc.freq(freq);
-        env.setADSR(0.3, 0.5, 0.4, 2);
-        env.setRange(0.2 * intensity, 0);
-        
-        // ディレイ効果
-        osc.disconnect();
-        osc.connect(this.delay);
-        this.delay.process(osc, 0.3, 0.4, 2000);
-        
-        // パンニング
-        const pan = map(x, 0, width, -1, 1);
-        osc.pan(pan);
-        
-        osc.start();
-        env.play(osc);
-        
-        setTimeout(() => {
-            osc.stop();
-            osc.dispose();
-            env.dispose();
-        }, 4000);
-    }
-    
-    // 虹色パルス音の生成
-    playRainbowSound(x, y, intensity) {
-        const { oscillators, gains } = this.createHarmonicOscillator(
-            this.getPentatonicFrequency(floor(random(5))),
-            3
-        );
-        
-        const env = new p5.Envelope();
-        env.setADSR(0.1, 0.3, 0.5, 0.8);
-        env.setRange(0.3 * intensity, 0);
-        
-        // フィルター効果
-        const filter = new p5.Filter();
-        filter.setType('bandpass');
-        filter.freq(800);
-        filter.res(15);
-        
-        gains.forEach(gain => {
-            gain.connect(filter);
-        });
-        
-        oscillators.forEach(osc => {
+        return ErrorUtils.safeExecute(() => {
+            const trailConfig = Config.SOUND.AUDIO_PARAMS.TRAIL;
+            const mappingConfig = Config.SOUND.MAPPING;
+            
+            const noteIndex = floor(random(5));
+            const octave = floor(random(trailConfig.octaveRange.min, trailConfig.octaveRange.max));
+            const freq = this.getPentatonicFrequency(noteIndex, octave);
+            
+            const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.TRIANGLE);
+            const env = new p5.Envelope();
+            
+            osc.freq(freq);
+            const trailEnv = this.effectParams[2].envelope;
+            env.setADSR(trailEnv.attack, trailEnv.decay, trailEnv.sustain, trailEnv.release);
+            env.setRange(trailConfig.volumeBase * intensity, 0);
+            
+            // ディレイ効果
+            osc.disconnect();
+            osc.connect(this.audioEffects.delay);
+            const delayParams = trailConfig.delayParams;
+            this.audioEffects.delay.process(osc, delayParams.time, delayParams.feedback, delayParams.maxTime);
+            
+            // パンニング
+            const pan = map(x, 0, width, mappingConfig.PAN_RANGE.min, mappingConfig.PAN_RANGE.max);
+            osc.pan(pan);
+            
+            const soundId = this.generateSoundId('trail');
+            this.trackActiveSound(soundId, [osc, env]);
+            
             osc.start();
             env.play(osc);
-        });
-        
-        setTimeout(() => {
-            oscillators.forEach(osc => {
-                osc.stop();
-                osc.dispose();
+            
+            setTimeout(() => {
+                this.cleanupSoundById(soundId);
+            }, trailConfig.cleanupDelay);
+            
+        }, 'SoundSystem.playTrailSound');
+    }
+    
+    /**
+     * 虹色パルス音の生成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度
+     */
+    playRainbowSound(x, y, intensity) {
+        return ErrorUtils.safeExecute(() => {
+            const { oscillators, gains } = this.createHarmonicOscillator(
+                this.getPentatonicFrequency(floor(random(5))),
+                3
+            );
+            
+            const env = new p5.Envelope();
+            const rainbowEnv = this.effectParams[3].envelope;
+            env.setADSR(rainbowEnv.attack, rainbowEnv.decay, rainbowEnv.sustain, rainbowEnv.release);
+            env.setRange(0.3 * intensity, 0);
+            
+            // フィルター効果
+            const filter = new p5.Filter();
+            const filterConfig = Config.SOUND.EFFECTS.FILTER;
+            filter.setType(filterConfig.type);
+            filter.freq(filterConfig.defaultFreq);
+            filter.res(filterConfig.defaultRes);
+            
+            gains.forEach(gain => {
+                gain.connect(filter);
             });
-            gains.forEach(gain => gain.dispose());
-            filter.dispose();
-            env.dispose();
-        }, 2000);
+            
+            const soundId = this.generateSoundId('rainbow');
+            this.trackActiveSound(soundId, [...oscillators, ...gains, filter, env]);
+            
+            oscillators.forEach(osc => {
+                osc.start();
+                env.play(osc);
+            });
+            
+            setTimeout(() => {
+                this.cleanupSoundById(soundId);
+            }, Config.SOUND.AUDIO_PARAMS.BELL.cleanupDelay);
+            
+        }, 'SoundSystem.playRainbowSound');
     }
     
-    // 重力音の生成
+    /**
+     * 重力音の生成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度
+     */
     playGravitySound(x, y, intensity) {
-        const freq = this.getPentatonicFrequency(floor(random(5)), -1);
-        const osc = new p5.Oscillator('sine');
-        const env = new p5.Envelope();
-        
-        osc.freq(freq);
-        env.setADSR(0.05, 0.2, 0.1, 0.3);
-        env.setRange(0.4 * intensity, 0);
-        
-        // ピッチベンド効果
-        const pitchBend = map(y, 0, height, 2, 0.5);
-        osc.freq(freq * pitchBend);
-        
-        osc.start();
-        env.play(osc);
-        
-        setTimeout(() => {
-            osc.stop();
-            osc.dispose();
-            env.dispose();
-        }, 1000);
+        return ErrorUtils.safeExecute(() => {
+            const mappingConfig = Config.SOUND.MAPPING;
+            
+            const freq = this.getPentatonicFrequency(floor(random(5)), -1);
+            const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
+            const env = new p5.Envelope();
+            
+            osc.freq(freq);
+            const gravityEnv = this.effectParams[4].envelope;
+            env.setADSR(gravityEnv.attack, gravityEnv.decay, gravityEnv.sustain, gravityEnv.release);
+            env.setRange(0.4 * intensity, 0);
+            
+            // ピッチベンド効果
+            const pitchBend = map(y, 0, height, 
+                mappingConfig.Y_TO_PITCH_BEND.max, mappingConfig.Y_TO_PITCH_BEND.min);
+            osc.freq(freq * pitchBend);
+            
+            const soundId = this.generateSoundId('gravity');
+            this.trackActiveSound(soundId, [osc, env]);
+            
+            osc.start();
+            env.play(osc);
+            
+            setTimeout(() => {
+                this.cleanupSoundById(soundId);
+            }, 1000);
+            
+        }, 'SoundSystem.playGravitySound');
     }
     
-    // 渦巻き音の生成
+    /**
+     * 渦巻き音の生成
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} intensity - 強度
+     */
     playSwirlSound(x, y, intensity) {
-        const noteIndex = floor(random(5));
-        const freq = this.getPentatonicFrequency(noteIndex, 0);
-        
-        const osc = new p5.Oscillator('sine');
-        const env = new p5.Envelope();
-        const lfo = new p5.Oscillator('sine');
-        
-        osc.freq(freq);
-        env.setADSR(0.2, 0.4, 0.3, 1.5);
-        env.setRange(0.25 * intensity, 0);
-        
-        // LFOによる周波数変調
-        lfo.freq(3);
-        lfo.amp(50);
-        lfo.start();
-        osc.freq(lfo);
-        
-        // 回転パンニング
-        const pan = sin(frameCount * 0.05) * 0.8;
-        osc.pan(pan);
-        
-        osc.start();
-        env.play(osc);
-        
-        setTimeout(() => {
-            osc.stop();
-            lfo.stop();
-            osc.dispose();
-            lfo.dispose();
-            env.dispose();
-        }, 3000);
+        return ErrorUtils.safeExecute(() => {
+            const lfoConfig = Config.SOUND.EFFECTS.LFO;
+            
+            const noteIndex = floor(random(5));
+            const freq = this.getPentatonicFrequency(noteIndex, 0);
+            
+            const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
+            const env = new p5.Envelope();
+            const lfo = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
+            
+            osc.freq(freq);
+            const swirlEnv = this.effectParams[5].envelope;
+            env.setADSR(swirlEnv.attack, swirlEnv.decay, swirlEnv.sustain, swirlEnv.release);
+            env.setRange(0.25 * intensity, 0);
+            
+            // LFOによる周波数変調
+            lfo.freq(lfoConfig.frequency);
+            lfo.amp(lfoConfig.amplitude);
+            lfo.start();
+            osc.freq(lfo);
+            
+            // 回転パンニング
+            const pan = sin(frameCount * 0.05) * this.effectParams[5].panning.range;
+            osc.pan(pan);
+            
+            const soundId = this.generateSoundId('swirl');
+            this.trackActiveSound(soundId, [osc, env, lfo]);
+            
+            osc.start();
+            env.play(osc);
+            
+            setTimeout(() => {
+                this.cleanupSoundById(soundId);
+            }, 3000);
+            
+        }, 'SoundSystem.playSwirlSound');
     }
     
-    // インタラクション音の再生
+    /**
+     * インタラクション音の再生
+     * @param {string} type - インタラクションタイプ
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} velocity - 速度
+     */
     playInteractionSound(type, x, y, velocity = 1) {
-        if (!this.isEnabled || this.isMuted || !this.p5SoundReady) return;
-        
-        switch (type) {
-            case 'click':
-                this.playClickSound(x, y);
-                break;
-            case 'drag':
-                this.playDragSound(x, y, velocity);
-                break;
-            case 'particleCreate':
-                this.playParticleCreateSound(x, y);
-                break;
-        }
+        return ErrorUtils.safeExecute(() => {
+            if (!this.isEnabled || this.isMuted || !this.p5SoundReady) return;
+            
+            if (!this.validateSoundParameters(1, x, y, velocity)) return;
+            
+            switch (type) {
+                case 'click':
+                    this.playClickSound(x, y);
+                    break;
+                case 'drag':
+                    this.playDragSound(x, y, velocity);
+                    break;
+                case 'particleCreate':
+                    this.playParticleCreateSound(x, y);
+                    break;
+                default:
+                    console.warn(`Unknown interaction sound type: ${type}`);
+            }
+        }, 'SoundSystem.playInteractionSound');
     }
     
-    // クリック音（和音）
+    /**
+     * クリック音の再生（和音）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
     playClickSound(x, y) {
-        console.log('🎵 PlayClickSound called:', { x, y, enabled: this.isEnabled, muted: this.isMuted, ready: this.p5SoundReady });
-        
-        if (!this.isEnabled || this.isMuted) {
-            console.log('❌ Click sound skipped due to state');
-            return;
-        }
-        
-        try {
+        return ErrorUtils.safeExecute(() => {
+            console.log('🎵 PlayClickSound called:', { x, y, enabled: this.isEnabled, muted: this.isMuted, ready: this.p5SoundReady });
+            
+            if (!this.isEnabled || this.isMuted) {
+                console.log('❌ Click sound skipped due to state');
+                return;
+            }
+            
+            const mappingConfig = Config.SOUND.MAPPING;
             const rootIndex = floor(random(5));
             const chordType = random() > 0.5 ? 'major' : 'minor';
             
@@ -668,157 +929,344 @@ class SoundSystem {
             
             console.log('🎶 Frequencies:', frequencies);
             
+            const soundNodes = [];
+            const soundId = this.generateSoundId('click');
+            
             frequencies.forEach((freq, i) => {
                 console.log(`🔊 Creating oscillator ${i}: ${freq.toFixed(2)}Hz`);
                 
-                const osc = new p5.Oscillator('triangle');
+                const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.TRIANGLE);
                 const env = new p5.Envelope();
                 
                 osc.freq(freq);
                 env.setADSR(0.01, 0.2, 0.3, 0.5);
                 env.setRange(0.2, 0);
                 
-                const pan = map(x, 0, width, -0.5, 0.5);
+                const pan = map(x, 0, width, mappingConfig.PAN_RANGE_LIMITED.min, mappingConfig.PAN_RANGE_LIMITED.max);
                 osc.pan(pan);
+                
+                soundNodes.push(osc, env);
                 
                 console.log(`▶️ Starting oscillator ${i}`);
                 osc.start();
                 env.play(osc);
-                
-                setTimeout(() => {
-                    console.log(`⏹️ Stopping oscillator ${i}`);
-                    try {
-                        osc.stop();
-                        osc.dispose();
-                        env.dispose();
-                    } catch (cleanupError) {
-                        console.log('⚠️ Cleanup error (harmless):', cleanupError);
-                    }
-                }, 1000);
             });
             
-            console.log('✅ Click sound generation completed');
-        } catch (error) {
-            console.error('❌ Error in playClickSound:', error);
-        }
+            this.trackActiveSound(soundId, soundNodes);
+            
+            setTimeout(() => {
+                console.log('⏹️ Stopping click sound');
+                this.cleanupSoundById(soundId);
+                console.log('✅ Click sound generation completed');
+            }, 1000);
+            
+        }, 'SoundSystem.playClickSound');
     }
     
-    // ドラッグ音（連続的な音程変化）
+    /**
+     * ドラッグ音の再生（連続的な音程変化）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} velocity - ドラッグ速度
+     */
     playDragSound(x, y, velocity) {
-        const freq = map(x, 0, width, 200, 800);
-        const vol = map(velocity, 0, 20, 0.1, 0.4);
-        
-        const osc = new p5.Oscillator('sine');
-        const env = new p5.Envelope();
-        
-        osc.freq(freq);
-        env.setADSR(0.05, 0.1, vol, 0.1);
-        env.setRange(vol, 0);
-        
-        osc.start();
-        env.play(osc);
-        
-        setTimeout(() => {
-            osc.stop();
-            osc.dispose();
-            env.dispose();
-        }, 300);
-    }
-    
-    // パーティクル生成音（ベル/チャイム）
-    playParticleCreateSound(x, y) {
-        const freq = this.getPentatonicFrequency(floor(random(5)), 1);
-        
-        // ベル音の倍音構造
-        const partials = [1, 2.2, 3.6, 5.1];
-        
-        partials.forEach((partial, i) => {
-            const osc = new p5.Oscillator('sine');
+        return ErrorUtils.safeExecute(() => {
+            const mappingConfig = Config.SOUND.MAPPING;
+            
+            const freq = map(x, 0, width, mappingConfig.SCREEN_TO_FREQUENCY.min, mappingConfig.SCREEN_TO_FREQUENCY.max);
+            const vol = map(velocity, 0, 20, mappingConfig.VELOCITY_TO_VOLUME.min, mappingConfig.VELOCITY_TO_VOLUME.max);
+            
+            const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
             const env = new p5.Envelope();
             
-            osc.freq(freq * partial);
-            env.setADSR(0.01, 0.3 - i * 0.05, 0, 0.5);
-            env.setRange(0.15 / (i + 1), 0);
+            osc.freq(freq);
+            env.setADSR(0.05, 0.1, vol, 0.1);
+            env.setRange(vol, 0);
+            
+            const soundId = this.generateSoundId('drag');
+            this.trackActiveSound(soundId, [osc, env]);
             
             osc.start();
             env.play(osc);
             
             setTimeout(() => {
-                osc.stop();
-                osc.dispose();
-                env.dispose();
-            }, 2000);
-        });
+                this.cleanupSoundById(soundId);
+            }, 300);
+            
+        }, 'SoundSystem.playDragSound');
     }
     
-    // アンビエントサウンドの開始
-    startAmbient() {
-        if (!this.isEnabled || this.isMuted || !this.p5SoundReady) return;
-        
-        if (this.ambientOsc && !this.ambientOsc.started) {
-            this.ambientOsc.start();
-            this.ambientGain.amp(0.05, 2);
-        }
-    }
-    
-    // アンビエントサウンドの停止
-    stopAmbient() {
-        if (this.ambientOsc && this.ambientOsc.started) {
-            this.ambientGain.amp(0, 2);
+    /**
+     * パーティクル生成音の再生（ベル/チャイム）
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    playParticleCreateSound(x, y) {
+        return ErrorUtils.safeExecute(() => {
+            const bellConfig = Config.SOUND.AUDIO_PARAMS.BELL;
+            const freq = this.getPentatonicFrequency(floor(random(5)), 1);
+            
+            const soundNodes = [];
+            const soundId = this.generateSoundId('particleCreate');
+            
+            // ベル音の倍音構造
+            bellConfig.partials.forEach((partial, i) => {
+                const osc = new p5.Oscillator(Config.SOUND.WAVEFORMS.SINE);
+                const env = new p5.Envelope();
+                
+                osc.freq(freq * partial);
+                env.setADSR(0.01, 0.3 - i * 0.05, 0, 0.5);
+                env.setRange(bellConfig.volumeBase / (i + 1), 0);
+                
+                soundNodes.push(osc, env);
+                
+                osc.start();
+                env.play(osc);
+            });
+            
+            this.trackActiveSound(soundId, soundNodes);
+            
             setTimeout(() => {
-                this.ambientOsc.stop();
-            }, 2000);
-        }
+                this.cleanupSoundById(soundId);
+            }, bellConfig.cleanupDelay);
+            
+        }, 'SoundSystem.playParticleCreateSound');
     }
     
-    // 古いサウンドのクリーンアップ
-    cleanupOldSounds() {
-        // 実装簡略化（実際のプロジェクトではより詳細な管理が必要）
-        console.log('Cleanup old sounds - implementation simplified');
+    /**
+     * アンビエントサウンドの開始
+     */
+    startAmbient() {
+        return ErrorUtils.safeExecute(() => {
+            if (!this.isEnabled || this.isMuted || !this.p5SoundReady) return;
+            
+            const ambientConfig = Config.SOUND.AUDIO_PARAMS.AMBIENT;
+            
+            if (this.ambientComponents.oscillator && !this.ambientComponents.oscillator.started) {
+                this.ambientComponents.oscillator.start();
+                this.ambientComponents.gain.amp(Config.SOUND.AMBIENT_BASE_VOLUME, ambientConfig.fadeInTime);
+                console.log('🌌 Ambient sound started');
+            }
+        }, 'SoundSystem.startAmbient');
     }
     
-    // マスターボリュームの設定
+    /**
+     * アンビエントサウンドの停止
+     */
+    stopAmbient() {
+        return ErrorUtils.safeExecute(() => {
+            const ambientConfig = Config.SOUND.AUDIO_PARAMS.AMBIENT;
+            
+            if (this.ambientComponents.oscillator && this.ambientComponents.oscillator.started) {
+                this.ambientComponents.gain.amp(0, ambientConfig.fadeOutTime);
+                setTimeout(() => {
+                    if (this.ambientComponents.oscillator) {
+                        this.ambientComponents.oscillator.stop();
+                    }
+                }, ambientConfig.fadeOutTime * 1000);
+                console.log('🌌 Ambient sound stopped');
+            }
+        }, 'SoundSystem.stopAmbient');
+    }
+    
+    /**
+     * サウンドIDの生成
+     * @param {string} type - サウンドタイプ
+     * @returns {string} 一意のサウンドID
+     */
+    generateSoundId(type) {
+        return `${type}_${++this.soundIdCounter}_${Date.now()}`;
+    }
+    
+    /**
+     * アクティブサウンドの追跡
+     * @param {string} soundId - サウンドID
+     * @param {Array} audioNodes - オーディオノードの配列
+     */
+    trackActiveSound(soundId, audioNodes) {
+        this.activeSounds.set(soundId, {
+            nodes: audioNodes,
+            createdAt: performance.now(),
+            type: soundId.split('_')[0]
+        });
+        
+        this.performanceStats.totalSoundsCreated++;
+        this.performanceStats.activeSoundCount = this.activeSounds.size;
+    }
+    
+    /**
+     * サウンドのクリーンアップ（ID指定）
+     * @param {string} soundId - サウンドID
+     */
+    cleanupSoundById(soundId) {
+        return ErrorUtils.safeExecute(() => {
+            const soundData = this.activeSounds.get(soundId);
+            if (!soundData) return;
+            
+            soundData.nodes.forEach(node => {
+                if (node && typeof node.stop === 'function') {
+                    node.stop();
+                }
+                if (node && typeof node.dispose === 'function') {
+                    node.dispose();
+                }
+            });
+            
+            this.activeSounds.delete(soundId);
+            this.performanceStats.activeSoundCount = this.activeSounds.size;
+            
+        }, `SoundSystem.cleanupSoundById(${soundId})`);
+    }
+    
+    /**
+     * オーディオノードのクリーンアップ（汎用）
+     * @param {...Object} nodes - クリーンアップするノード
+     */
+    cleanupAudioNode(...nodes) {
+        return ErrorUtils.safeExecute(() => {
+            nodes.forEach(node => {
+                if (node && typeof node.stop === 'function') {
+                    node.stop();
+                }
+                if (node && typeof node.dispose === 'function') {
+                    node.dispose();
+                }
+            });
+        }, 'SoundSystem.cleanupAudioNode');
+    }
+    
+    /**
+     * 古いサウンドのクリーンアップ
+     * パフォーマンス維持のための定期クリーンアップ
+     */
+    performSoundCleanup() {
+        return ErrorUtils.executeWithPerformanceMonitoring(() => {
+            const now = performance.now();
+            const maxLifetime = Config.SOUND.CLEANUP.MAX_NODE_LIFETIME;
+            let cleanedCount = 0;
+            
+            for (const [soundId, soundData] of this.activeSounds.entries()) {
+                if (now - soundData.createdAt > maxLifetime) {
+                    this.cleanupSoundById(soundId);
+                    cleanedCount++;
+                }
+            }
+            
+            if (cleanedCount > 0) {
+                console.debug(`Cleaned up ${cleanedCount} old sounds`);
+            }
+            
+            this.performanceStats.lastCleanupTime = now;
+        }, 'SoundSystem.performSoundCleanup', 10);
+    }
+    
+    /**
+     * マスターボリュームの設定
+     * @param {number} volume - ボリューム値（0-1）
+     */
     setMasterVolume(volume) {
-        this.masterVolume = constrain(volume, 0, 1);
-        console.log('🔊 Setting master volume to:', this.masterVolume);
-        
-        if (this.p5SoundReady) {
-            this.setP5MasterVolume(this.masterVolume);
-        } else {
-            console.log('⚠️ p5.sound not ready, volume will be set when initialized');
-        }
+        return ErrorUtils.safeExecute(() => {
+            this.masterVolume = constrain(volume, 0, 1);
+            console.log('🔊 Setting master volume to:', this.masterVolume);
+            
+            if (this.p5SoundReady) {
+                this.setP5MasterVolume(this.masterVolume);
+            } else {
+                console.log('⚠️ p5.sound not ready, volume will be set when initialized');
+            }
+        }, 'SoundSystem.setMasterVolume');
     }
     
-    // ミュートの切り替え
+    /**
+     * ミュートの切り替え
+     * @returns {boolean} 現在のミュート状態
+     */
     toggleMute() {
-        this.isMuted = !this.isMuted;
-        console.log('🔇 Mute toggled:', this.isMuted);
-        
-        if (this.isMuted) {
-            this.stopAmbient();
-            this.updateSoundStatus('🔇 サウンドシステム: ミュート中', '#f5f5f5');
-        } else {
-            this.startAmbient();
-            this.updateSoundStatus('🎵 サウンドシステム: 動作中', '#e8f5e8');
-        }
-        return this.isMuted;
+        return ErrorUtils.safeExecute(() => {
+            this.isMuted = !this.isMuted;
+            console.log('🔇 Mute toggled:', this.isMuted);
+            
+            if (this.isMuted) {
+                this.stopAmbient();
+                this.updateSoundStatus('🔇 サウンドシステム: ミュート中', Config.UI.STATUS_COLORS.INFO);
+            } else {
+                this.startAmbient();
+                this.updateSoundStatus('🎵 サウンドシステム: 動作中', Config.UI.STATUS_COLORS.SUCCESS);
+            }
+            
+            return this.isMuted;
+        }, 'SoundSystem.toggleMute', this.isMuted);
     }
     
-    // サウンドシステムの無効化
+    /**
+     * サウンドシステムの無効化
+     */
     disable() {
-        this.isEnabled = false;
-        this.stopAmbient();
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-        }
+        return ErrorUtils.safeExecute(() => {
+            this.isEnabled = false;
+            this.stopAmbient();
+            
+            if (this.ambientComponents.heartbeatInterval) {
+                clearInterval(this.ambientComponents.heartbeatInterval);
+                this.ambientComponents.heartbeatInterval = null;
+            }
+            
+            // 全アクティブサウンドのクリーンアップ
+            for (const soundId of this.activeSounds.keys()) {
+                this.cleanupSoundById(soundId);
+            }
+            
+            console.log('🔇 SoundSystem disabled');
+        }, 'SoundSystem.disable');
     }
     
-    // サウンドシステムの有効化
+    /**
+     * サウンドシステムの有効化
+     */
     enable() {
-        this.isEnabled = true;
-        if (this.isInitialized && !this.isMuted) {
-            this.startAmbient();
-            this.startHeartbeatRhythm();
-        }
+        return ErrorUtils.safeExecute(() => {
+            this.isEnabled = true;
+            
+            if (this.isInitialized && !this.isMuted) {
+                this.startAmbient();
+                this.startHeartbeatRhythm();
+            }
+            
+            console.log('🔊 SoundSystem enabled');
+        }, 'SoundSystem.enable');
+    }
+    
+    /**
+     * パフォーマンス統計の取得
+     * @returns {Object} パフォーマンス統計
+     */
+    getPerformanceStats() {
+        return ErrorUtils.safeExecute(() => {
+            return {
+                ...this.performanceStats,
+                activeSounds: this.activeSounds.size,
+                maxActiveSounds: this.maxActiveSounds,
+                memoryEstimate: this.activeSounds.size * 1024, // 概算（バイト）
+                isInitialized: this.isInitialized,
+                isEnabled: this.isEnabled,
+                isMuted: this.isMuted
+            };
+        }, 'SoundSystem.getPerformanceStats', {});
+    }
+    
+    /**
+     * システム状態の取得
+     * @returns {Object} システム状態
+     */
+    getSystemStatus() {
+        return {
+            isInitialized: this.isInitialized,
+            isEnabled: this.isEnabled,
+            isMuted: this.isMuted,
+            p5SoundReady: this.p5SoundReady,
+            masterVolume: this.masterVolume,
+            activeSounds: this.activeSounds.size,
+            performanceStats: this.getPerformanceStats()
+        };
     }
 }

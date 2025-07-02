@@ -1,19 +1,83 @@
-// パーティクルクラス
-
+/**
+ * パーティクルクラス
+ * 個別パーティクルの物理演算、描画、ライフサイクル管理
+ * オブジェクトプール対応とパフォーマンス最適化を実装
+ */
 class Particle {
+    /**
+     * Particleのコンストラクタ
+     * @param {number} x - 初期X座標
+     * @param {number} y - 初期Y座標
+     * @param {Object} config - パーティクル設定
+     */
     constructor(x, y, config = {}) {
-        // 位置
-        this.position = createVector(x, y);
-        this.previousPosition = createVector(x, y);
+        this.initialize(x, y, config);
+    }
+    
+    /**
+     * パーティクルの初期化
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {Object} config - 設定オブジェクト
+     */
+    initialize(x, y, config = {}) {
+        try {
+            // 座標の検証
+            if (!isFinite(x) || !isFinite(y) || isNaN(x) || isNaN(y)) {
+                throw new Error(`Invalid particle coordinates: x=${x}, y=${y}`);
+            }
+            
+            // Configからのデフォルト値取得
+            const particleConfig = Config.PARTICLES;
+            
+            // 位置ベクトル
+            this.position = createVector(x, y);
+            this.previousPosition = createVector(x, y);
+            
+            // 速度と加速度
+            const dir = config.direction || randomDirection();
+            const speed = config.speed || random(1, 5);
+            this.velocity = createVector(dir.x * speed, dir.y * speed);
+            this.acceleration = createVector(0, 0);
+            
+            // 外観プロパティ
+            this.initializeAppearance(config, particleConfig);
+            
+            // 物理特性
+            this.initializePhysics(config, particleConfig);
+            
+            // 動作特性
+            this.initializeBehavior(config);
+            
+            // 特殊効果用プロパティ
+            this.initializeEffects();
+            
+            // パフォーマンス最適化用
+            this.lastUpdateTime = performance.now();
+            this.skipFrameCount = 0;
+            
+        } catch (error) {
+            errorHandler.handleError(new AppError(
+                `Particle initialization failed: ${error.message}`,
+                ErrorCategory.GRAPHICS,
+                ErrorLevel.ERROR,
+                { x, y, config, error }
+            ));
+            
+            // フォールバック初期化
+            this.initializeFallback(x, y);
+        }
+    }
+    
+    /**
+     * 外観プロパティの初期化
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} particleConfig - パーティクル設定
+     */
+    initializeAppearance(config, particleConfig) {
+        const sizeRange = particleConfig.APPEARANCE.SIZE_RANGE;
         
-        // 速度と加速度
-        const dir = config.direction || randomDirection();
-        const speed = config.speed || random(1, 5);
-        this.velocity = createVector(dir.x * speed, dir.y * speed);
-        this.acceleration = createVector(0, 0);
-        
-        // 外観
-        this.size = config.size || random(2, 8);
+        this.size = config.size || random(sizeRange.min, sizeRange.max);
         this.maxSize = this.size * 2;
         this.minSize = this.size * 0.5;
         this.hue = config.hue || random(360);
@@ -21,24 +85,92 @@ class Particle {
         this.brightness = config.brightness || 100;
         this.alpha = config.alpha || 100;
         this.maxAlpha = this.alpha;
+    }
+    
+    /**
+     * 物理特性の初期化
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} particleConfig - パーティクル設定
+     */
+    initializePhysics(config, particleConfig) {
+        const lifespanRange = particleConfig.APPEARANCE.LIFESPAN_RANGE;
         
-        // 物理特性
         this.mass = this.size * 0.1;
-        this.lifespan = config.lifespan || random(60, 180);
+        this.lifespan = config.lifespan || random(lifespanRange.min, lifespanRange.max);
         this.maxLifespan = this.lifespan;
-        this.damping = config.damping || 0.98;
-        
-        // 動作特性
+        this.damping = config.damping || particleConfig.PHYSICS.DEFAULT_DAMPING;
+    }
+    
+    /**
+     * 動作特性の初期化
+     * @param {Object} config - 設定オブジェクト
+     */
+    initializeBehavior(config) {
         this.mode = config.mode || 'normal';
         this.trail = config.trail || false;
         this.pulsePhase = random(TWO_PI);
         this.rotationSpeed = random(-0.1, 0.1);
         this.rotation = 0;
-        
-        // 特殊効果用
+    }
+    
+    /**
+     * 特殊効果プロパティの初期化
+     */
+    initializeEffects() {
         this.target = null;
         this.isExploding = false;
         this.explosionForce = 0;
+        this.glowIntensity = 1.0;
+        this.energyLevel = 1.0;
+    }
+    
+    /**
+     * フォールバック初期化
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     */
+    initializeFallback(x, y) {
+        this.position = createVector(x || 0, y || 0);
+        this.previousPosition = createVector(x || 0, y || 0);
+        this.velocity = createVector(random(-2, 2), random(-2, 2));
+        this.acceleration = createVector(0, 0);
+        this.size = random(2, 8);
+        this.maxSize = this.size * 2;
+        this.minSize = this.size * 0.5;
+        this.hue = random(360);
+        this.saturation = random(60, 100);
+        this.brightness = 100;
+        this.alpha = 100;
+        this.maxAlpha = 100;
+        this.mass = this.size * 0.1;
+        this.lifespan = random(60, 180);
+        this.maxLifespan = this.lifespan;
+        this.damping = 0.98;
+        this.mode = 'normal';
+        this.trail = false;
+        this.pulsePhase = random(TWO_PI);
+        this.rotationSpeed = random(-0.1, 0.1);
+        this.rotation = 0;
+        this.target = null;
+        this.isExploding = false;
+        this.explosionForce = 0;
+        this.glowIntensity = 1.0;
+        this.energyLevel = 1.0;
+        this.lastUpdateTime = performance.now();
+        this.skipFrameCount = 0;
+    }
+    
+    /**
+     * パーティクルのリセット（オブジェクトプール用）
+     * @param {number} x - 新しいX座標
+     * @param {number} y - 新しいY座標
+     * @param {Object} config - 新しい設定
+     */
+    reset(x, y, config = {}) {
+        return ErrorUtils.safeExecute(() => {
+            this.initialize(x, y, config);
+            console.debug('Particle reset for object pool reuse');
+        }, 'Particle.reset');
     }
     
     // 力を加える

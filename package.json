@@ -1,0 +1,20 @@
+{
+  "name": "p5-interactive-animation",
+  "version": "1.0.0",
+  "description": "感情を動かす調和の取れたインタラクティブパーティクルアニメーション",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 start-server.py",
+    "dev": "python3 start-server.py",
+    "serve": "python3 start-server.py"
+  },
+  "keywords": [
+    "p5.js",
+    "particle",
+    "animation",
+    "sound",
+    "interactive"
+  ],
+  "author": "",
+  "license": "MIT"
+}
