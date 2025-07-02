@@ -7,6 +7,8 @@ let isPaused = false;
 let currentEffect = 1;
 let performanceMonitor;
 let bgAlpha = 20;
+let isDragging = false;
+let currentDragPath = [];
 
 // キャンバスの設定
 function setup() {
@@ -77,16 +79,19 @@ function mousePressed() {
     // 毎回ユーザーインタラクション時の初期化を試行
     soundSystem.initOnUserGesture();
     
-    particleSystem.createExplosion(mouseX, mouseY);
-    
-    // 少し遅延してサウンド再生を試行
-    setTimeout(() => {
-        soundSystem.playInteractionSound('click', mouseX, mouseY);
-    }, 100);
+    // ドラッグ開始の準備（まだドラッグかクリックか不明）
+    isDragging = false;
+    currentDragPath = [{x: mouseX, y: mouseY}];
 }
 
 // マウスドラッグ時の処理
 function mouseDragged() {
+    // ドラッグ中フラグを設定
+    isDragging = true;
+    
+    // ドラッグパスにポイントを追加
+    currentDragPath.push({x: mouseX, y: mouseY});
+    
     // ドラッグ軌跡を記録
     dragTrail.addPoint(mouseX, mouseY, pmouseX, pmouseY);
     
@@ -95,6 +100,30 @@ function mouseDragged() {
     
     const velocity = dist(mouseX, mouseY, pmouseX, pmouseY);
     soundSystem.playInteractionSound('drag', mouseX, mouseY, velocity);
+}
+
+// マウスリリース時の処理
+function mouseReleased() {
+    if (isDragging && currentDragPath.length > 1) {
+        // ドラッグ終点で爆発を作成
+        const endPoint = currentDragPath[currentDragPath.length - 1];
+        particleSystem.createPathExplosion(endPoint.x, endPoint.y, currentDragPath);
+        
+        // サウンド再生
+        soundSystem.playInteractionSound('explosion', endPoint.x, endPoint.y);
+    } else {
+        // 通常のクリック時は起点で爆発
+        particleSystem.createExplosion(mouseX, mouseY);
+        
+        // 少し遅延してサウンド再生を試行
+        setTimeout(() => {
+            soundSystem.playInteractionSound('click', mouseX, mouseY);
+        }, 100);
+    }
+    
+    // ドラッグ状態をリセット
+    isDragging = false;
+    currentDragPath = [];
 }
 
 // キー押下時の処理

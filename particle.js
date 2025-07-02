@@ -111,6 +111,13 @@ class Particle {
         this.pulsePhase = random(TWO_PI);
         this.rotationSpeed = random(-0.1, 0.1);
         this.rotation = 0;
+        
+        // パスに沿った動きのプロパティ
+        this.followPath = config.followPath || false;
+        this.pathData = config.pathData || null;
+        this.pathProgress = config.pathProgress || 0;
+        this.pathInfluence = config.pathInfluence || 0.5;
+        this.pathVelocity = createVector(0, 0);
     }
     
     /**
@@ -158,6 +165,11 @@ class Particle {
         this.energyLevel = 1.0;
         this.lastUpdateTime = performance.now();
         this.skipFrameCount = 0;
+        this.followPath = false;
+        this.pathData = null;
+        this.pathProgress = 0;
+        this.pathInfluence = 0.5;
+        this.pathVelocity = createVector(0, 0);
     }
     
     /**
@@ -208,6 +220,11 @@ class Particle {
         // 前の位置を記録（トレイル用）
         this.previousPosition.x = this.position.x;
         this.previousPosition.y = this.position.y;
+        
+        // パスに沿った動きの計算
+        if (this.followPath && this.pathData && this.pathData.length > 1) {
+            this.updatePathMovement();
+        }
         
         // 物理演算
         this.velocity.add(this.acceleration);
@@ -324,5 +341,112 @@ class Particle {
                 this.rotationSpeed = random(-0.2, 0.2);
                 break;
         }
+    }
+    
+    /**
+     * パスに沿った動きの更新
+     */
+    updatePathMovement() {
+        try {
+            if (!this.pathData || this.pathData.length < 2) return;
+            
+            // パス上の進行度を更新
+            this.pathProgress += 0.02; // 進行速度（調整可能）
+            
+            // パス終了時の処理
+            if (this.pathProgress >= 1.0) {
+                this.followPath = false;
+                return;
+            }
+            
+            // 現在の位置のパス上での点を計算
+            const pathPoint = this.getPathPoint(this.pathProgress);
+            if (!pathPoint) return;
+            
+            // パスの方向を計算
+            const pathDirection = this.getPathDirection(this.pathProgress);
+            if (!pathDirection) return;
+            
+            // パスに沿った力を計算
+            const pathForce = p5.Vector.mult(pathDirection, this.pathInfluence);
+            
+            // 現在の速度とパス方向をブレンド
+            this.pathVelocity = p5.Vector.lerp(this.velocity, pathForce, 0.1);
+            
+            // パスに沿った引力を適用
+            const targetPosition = createVector(pathPoint.x, pathPoint.y);
+            const attraction = p5.Vector.sub(targetPosition, this.position);
+            const distance = attraction.mag();
+            
+            if (distance > 0 && distance < 100) {
+                attraction.normalize();
+                attraction.mult(this.pathInfluence * 0.5);
+                this.applyForce(attraction);
+            }
+            
+        } catch (error) {
+            console.warn('Error in updatePathMovement:', error);
+            this.followPath = false;
+        }
+    }
+    
+    /**
+     * パス上の特定の進行度での点を取得
+     * @param {number} progress - 進行度 (0-1)
+     * @returns {Object|null} パス上の点
+     */
+    getPathPoint(progress) {
+        if (!this.pathData || this.pathData.length === 0) return null;
+        
+        progress = constrain(progress, 0, 1);
+        const index = progress * (this.pathData.length - 1);
+        const i1 = Math.floor(index);
+        const i2 = Math.min(i1 + 1, this.pathData.length - 1);
+        const t = index - i1;
+        
+        if (i1 === i2) {
+            return this.pathData[i1];
+        }
+        
+        // 線形補間
+        return {
+            x: lerp(this.pathData[i1].x, this.pathData[i2].x, t),
+            y: lerp(this.pathData[i1].y, this.pathData[i2].y, t)
+        };
+    }
+    
+    /**
+     * パス上の特定の進行度での方向を取得
+     * @param {number} progress - 進行度 (0-1)
+     * @returns {p5.Vector|null} パスの方向ベクトル
+     */
+    getPathDirection(progress) {
+        if (!this.pathData || this.pathData.length < 2) return null;
+        
+        progress = constrain(progress, 0, 1);
+        const index = progress * (this.pathData.length - 1);
+        const i1 = Math.floor(index);
+        const i2 = Math.min(i1 + 1, this.pathData.length - 1);
+        
+        if (i1 === i2) {
+            // 最後の点の場合、前の点との差を使用
+            if (i1 > 0) {
+                const deltaX = this.pathData[i1].x - this.pathData[i1 - 1].x;
+                const deltaY = this.pathData[i1].y - this.pathData[i1 - 1].y;
+                return createVector(deltaX, deltaY).normalize();
+            }
+            return createVector(1, 0);
+        }
+        
+        // 方向ベクトルを計算
+        const deltaX = this.pathData[i2].x - this.pathData[i1].x;
+        const deltaY = this.pathData[i2].y - this.pathData[i1].y;
+        
+        const direction = createVector(deltaX, deltaY);
+        if (direction.mag() > 0) {
+            direction.normalize();
+        }
+        
+        return direction;
     }
 }

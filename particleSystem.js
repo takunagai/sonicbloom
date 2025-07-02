@@ -267,6 +267,127 @@ class ParticleSystem {
     }
     
     /**
+     * パス終点での爆発エフェクトの作成
+     * @param {number} x - 爆発の中心X座標
+     * @param {number} y - 爆発の中心Y座標
+     * @param {Array} path - ドラッグパスの配列
+     * @returns {boolean} 爆発エフェクトの作成に成功したかどうか
+     */
+    createPathExplosion(x, y, path) {
+        return ErrorUtils.executeWithPerformanceMonitoring(() => {
+            // 座標の検証
+            if (!isFinite(x) || !isFinite(y) || isNaN(x) || isNaN(y)) {
+                throw new Error(`Invalid explosion coordinates: x=${x}, y=${y}`);
+            }
+            
+            if (!path || path.length < 2) {
+                throw new Error('Invalid path: need at least 2 points');
+            }
+            
+            const explosionConfig = Config.PARTICLES.EXPLOSION;
+            const numParticles = random(explosionConfig.PARTICLE_COUNT_RANGE.min * 1.5, explosionConfig.PARTICLE_COUNT_RANGE.max * 1.5);
+            const explosionForce = random(explosionConfig.FORCE_RANGE.min, explosionConfig.FORCE_RANGE.max);
+            
+            // パスの最後の方向を計算
+            const lastIndex = path.length - 1;
+            const prevIndex = Math.max(0, lastIndex - 5); // 最後の5点から方向を計算
+            const deltaX = path[lastIndex].x - path[prevIndex].x;
+            const deltaY = path[lastIndex].y - path[prevIndex].y;
+            const pathDirection = createVector(deltaX, deltaY).normalize();
+            const pathVelocity = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            console.log(`Creating path explosion at (${x.toFixed(1)}, ${y.toFixed(1)}) with ${Math.floor(numParticles)} particles`);
+            
+            // 爆発音の再生
+            this.playExplosionSound(x, y, explosionForce);
+            
+            // パスに沿った爆発パーティクルの生成
+            const createdParticles = this.createPathExplosionParticles(x, y, numParticles, explosionForce, pathDirection, pathVelocity, path);
+            
+            // 既存パーティクルへの影響
+            this.applyExplosionForceToExistingParticles(x, y, explosionForce);
+            
+            console.log(`✅ Path explosion created: ${createdParticles} new particles`);
+            return true;
+        }, 'ParticleSystem.createPathExplosion', 15);
+    }
+    
+    /**
+     * パスに沿った爆発パーティクルの作成
+     * @param {number} x - 中心X座標
+     * @param {number} y - 中心Y座標
+     * @param {number} numParticles - パーティクル数
+     * @param {number} explosionForce - 爆発力
+     * @param {p5.Vector} pathDirection - パスの方向
+     * @param {number} pathVelocity - パスの速度
+     * @param {Array} path - ドラッグパスの配列
+     * @returns {number} 作成されたパーティクル数
+     */
+    createPathExplosionParticles(x, y, numParticles, explosionForce, pathDirection, pathVelocity, path) {
+        let createdCount = 0;
+        const explosionConfig = Config.PARTICLES.EXPLOSION;
+        
+        for (let i = 0; i < numParticles; i++) {
+            // パスの方向を基準にした角度の計算
+            const baseAngle = atan2(pathDirection.y, pathDirection.x);
+            const spreadAngle = PI / 3; // 60度の広がり
+            const angle = baseAngle + random(-spreadAngle, spreadAngle);
+            
+            // パスの速度に応じた初期速度
+            const baseSpeed = explosionForce + pathVelocity * 0.5;
+            const speed = random(baseSpeed * 0.5, baseSpeed);
+            
+            const particleConfig = this.createParticleConfig({
+                direction: { x: cos(angle), y: sin(angle) },
+                speed: speed,
+                size: random(4, 12),
+                hue: random(360),
+                saturation: 100,
+                brightness: 100,
+                alpha: 100,
+                lifespan: random(explosionConfig.LIFESPAN_RANGE.min * 1.2, explosionConfig.LIFESPAN_RANGE.max * 1.2),
+                mode: this.effectConfigs[this.currentEffect].mode,
+                trail: true,
+                // パスに沿った動きのための追加プロパティ
+                followPath: true,
+                pathData: this.simplifyPath(path),
+                pathProgress: 0,
+                pathInfluence: random(0.3, 0.7)
+            });
+            
+            const particle = this.createParticle(x, y, particleConfig);
+            if (particle && this.addParticle(particle)) {
+                createdCount++;
+            }
+        }
+        
+        return createdCount;
+    }
+    
+    /**
+     * パスを簡略化（パフォーマンスのため）
+     * @param {Array} path - 元のパス
+     * @returns {Array} 簡略化されたパス
+     */
+    simplifyPath(path) {
+        if (path.length <= 10) return [...path];
+        
+        const simplified = [];
+        const step = Math.floor(path.length / 10);
+        
+        for (let i = 0; i < path.length; i += step) {
+            simplified.push({...path[i]});
+        }
+        
+        // 最後の点を必ず含める
+        if (simplified[simplified.length - 1] !== path[path.length - 1]) {
+            simplified.push({...path[path.length - 1]});
+        }
+        
+        return simplified;
+    }
+    
+    /**
      * 爆発音の再生
      * @param {number} x - X座標
      * @param {number} y - Y座標 
