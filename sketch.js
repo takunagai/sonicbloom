@@ -340,6 +340,15 @@ function setupDrawerControls() {
         toggleDrawer();
     });
     
+    // ハンバーガーボタンの追加イベント制御
+    drawerTrigger.addEventListener('mousedown', (e) => {
+        e.stopPropagation(); // mousePressed()の呼び出しを防ぐ
+    });
+    
+    drawerTrigger.addEventListener('mouseup', (e) => {
+        e.stopPropagation(); // mouseReleased()の呼び出しを防ぐ
+    });
+    
     // ドロワーを閉じる（閉じるボタン）
     drawerClose.addEventListener('click', (e) => {
         e.stopPropagation(); // パーティクル発射を防ぐ
@@ -357,6 +366,15 @@ function setupDrawerControls() {
     // ドロワーパネル内のクリックでイベント伝播を停止
     drawerPanel.addEventListener('click', (e) => {
         e.stopPropagation(); // パーティクル発射を防ぐ
+    });
+    
+    // ドロワーパネルの追加マウスイベント制御
+    drawerPanel.addEventListener('mousedown', (e) => {
+        e.stopPropagation(); // mousePressed()の呼び出しを防ぐ
+    });
+    
+    drawerPanel.addEventListener('mouseup', (e) => {
+        e.stopPropagation(); // mouseReleased()の呼び出しを防ぐ
     });
     
     // モバイルデバイス対応：タッチイベントでも伝播を停止
