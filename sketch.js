@@ -228,8 +228,7 @@ function keyPressed() {
             break;
         case 'm':
         case 'M':
-            const isMuted = soundSystem.toggleMute();
-            console.log('Sound ' + (isMuted ? 'muted' : 'unmuted'));
+            toggleMute();
             break;
     }
 }
@@ -279,9 +278,9 @@ function setupSoundControls() {
     muteButton.addEventListener('click', (e) => {
         e.stopPropagation(); // パーティクル発射を防ぐ
         console.log('🔇 Mute button clicked');
-        const isMuted = soundSystem.toggleMute();
-        console.log('🔇 Mute state:', isMuted);
-        muteButton.textContent = isMuted ? '🔇' : '🔈';
+        
+        // 共通関数を使用してミュート切り替え
+        toggleMute();
     });
     
     // エフェクト切り替えボタンのイベントハンドラー
@@ -298,6 +297,10 @@ function setupSoundControls() {
     
     // 初期エフェクトボタンの状態を設定
     updateEffectButtonStates(currentEffect);
+    
+    // 初期ミュートボタンの状態を設定
+    const initialMuteState = soundSystem.isMuted ? soundSystem.isMuted() : false;
+    updateMuteButtonIcon(initialMuteState);
     
     // サウンドコントロールエリア全体でのイベント伝播停止
     const soundControlsArea = document.querySelector('.sound-controls');
@@ -487,6 +490,39 @@ function updateDrawerButtonIcon(isOpen) {
         hamburgerIcon.textContent = '☰';
         hamburgerIcon.style.fontSize = '20px'; // 元のサイズ
         console.log('🔄 Button icon changed to hamburger (☰)');
+    }
+}
+
+// ミュート状態をトグル
+function toggleMute() {
+    // ミュート状態を切り替え
+    const isMuted = soundSystem.toggleMute();
+    
+    // ボタンアイコンを更新
+    updateMuteButtonIcon(isMuted);
+    
+    // 状態をログ出力
+    console.log(`🔇 Sound ${isMuted ? 'muted' : 'unmuted'}`);
+}
+
+// ミュートボタンのアイコンを更新
+function updateMuteButtonIcon(isMuted) {
+    const muteButton = document.getElementById('mute-button');
+    
+    if (!muteButton) {
+        console.warn('⚠️ Mute button element not found');
+        return;
+    }
+    
+    // アイコンとアクセシビリティ属性を更新
+    if (isMuted) {
+        muteButton.textContent = '🔇';
+        muteButton.setAttribute('aria-label', 'ミュート解除');
+        console.log('🔄 Button icon changed to muted (🔇)');
+    } else {
+        muteButton.textContent = '🔈';
+        muteButton.setAttribute('aria-label', 'ミュート');
+        console.log('🔄 Button icon changed to unmuted (🔈)');
     }
 }
 
