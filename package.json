@@ -4,7 +4,6 @@
   "description": "音と映像が織りなす美しい調和のインタラクティブアート体験",
   "main": "index.html",
   "scripts": {
-    "start": "http-server -p 8000 -o -c-1",
     "dev": "http-server -p 8000 -o -c-1",
     "serve": "http-server -p 8000"
   },
