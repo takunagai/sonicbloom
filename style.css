@@ -66,80 +66,47 @@ canvas {
     border-radius: 5px;
 }
 
-.sound-controls label {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-#volume-slider {
-    flex: 1;
-    height: 5px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    outline: none;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-    border-radius: 5px;
-}
-
-#volume-slider:hover {
-    opacity: 1;
-}
-
-#volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 15px;
-    height: 15px;
-    background: #8338ec;
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background 0.2s;
-}
-
-#volume-slider::-webkit-slider-thumb:hover {
-    background: #3a86ff;
-}
-
-#volume-slider::-moz-range-thumb {
-    width: 15px;
-    height: 15px;
-    background: #8338ec;
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background 0.2s;
-}
-
-#volume-slider::-moz-range-thumb:hover {
-    background: #3a86ff;
-}
-
-#volume-display {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.9);
-    min-width: 40px;
-    text-align: right;
-}
-
 #mute-button {
     background: none;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: none;
     color: #fff;
-    font-size: 18px;
-    padding: 5px 10px;
-    border-radius: 5px;
+    font-size: 20px;
     cursor: pointer;
     transition: all 0.2s;
+    padding: 0;
 }
 
 #mute-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+    filter: brightness(1.2);
 }
 
-#mute-button.muted {
-    color: rgba(255, 255, 255, 0.4);
+.effect-buttons {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.effect-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 2px;
+    opacity: 0.6;
+}
+
+.effect-btn:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+}
+
+.effect-btn.active {
+    opacity: 1;
+    filter: brightness(1.3);
+    transform: scale(1.05);
 }
 
 @media (max-width: 768px) {
