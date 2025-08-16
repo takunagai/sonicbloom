@@ -1,8 +1,8 @@
-# 🌟 Interactive Particle Animation
+# 🌸 SonicBloom
 
 <div align="center">
 
-**感情を動かす調和の取れたインタラクティブパーティクルアニメーション**
+**音と映像が織りなす美しい調和のインタラクティブアート体験**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![p5.js](https://img.shields.io/badge/p5.js-1.9.0-ED225D)](https://p5js.org/)
@@ -21,7 +21,7 @@
 
 ## 📖 概要
 
-Interactive Particle Animationは、p5.jsとWeb Audio APIを活用して作られた、音と映像が調和したインタラクティブアート作品です。ペンタトニックスケールと黄金比に基づく音響理論と、物理演算によるパーティクルシステムが組み合わさり、ユーザーの操作に応じて美しい視覚・聴覚体験を生み出します。
+SonicBloomは、p5.jsとWeb Audio APIを活用して作られた、音と映像が調和したインタラクティブアート作品です。ペンタトニックスケールと黄金比に基づく音響理論と、物理演算によるパーティクルシステムが組み合わさり、ユーザーの操作に応じて美しい視覚・聴覚体験を生み出します。
 
 ### 🎯 プロジェクトの特徴
 
@@ -47,7 +47,7 @@ Interactive Particle Animationは、p5.jsとWeb Audio APIを活用して作ら�
 ```bash
 # 1. リポジトリをクローン
 git clone <repository-url>
-cd p5-interactive-animation
+cd sonicbloom
 
 # 2. 依存関係をインストール（初回のみ）
 npm install
@@ -126,7 +126,7 @@ npm run serve   # ブラウザ自動起動なし
 ### 📁 プロジェクト構成
 
 ```
-p5-interactive-animation/
+sonicbloom/
 ├── 📄 index.html                 # メインHTML（エントリーポイント）
 ├── 🎨 style.css                  # UIスタイル定義
 ├── 🖼️ sketch.js                  # p5.jsメインスケッチ（描画ループ）
@@ -420,7 +420,7 @@ test: テスト追加
 
 **✨ 美しい音と映像の調和をお楽しみください ✨**
 
-*Interactive Particle Animation - Where Art Meets Technology*
+*SonicBloom - Where Sound Meets Art*
 
 Made with ❤️ by [Your Name] | 🤖 Enhanced with [Claude Code](https://claude.ai/code)
 
