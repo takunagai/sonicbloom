@@ -428,6 +428,9 @@ function openDrawer() {
         drawerOverlay.classList.add('active');
         drawerPanel.classList.add('active');
         
+        // ハンバーガーボタンを非表示
+        drawerTrigger.style.display = 'none';
+        
         // アクセシビリティ属性を更新
         drawerTrigger.setAttribute('aria-expanded', 'true');
         
@@ -456,6 +459,9 @@ function closeDrawer() {
         // アクティブ状態を解除
         drawerOverlay.classList.remove('active');
         drawerPanel.classList.remove('active');
+        
+        // ハンバーガーボタンを表示
+        drawerTrigger.style.display = 'flex';
         
         // アクセシビリティ属性を更新
         drawerTrigger.setAttribute('aria-expanded', 'false');
