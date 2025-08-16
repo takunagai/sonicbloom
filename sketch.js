@@ -36,6 +36,7 @@ function setup() {
     
     // UIコントロールの初期化
     setupSoundControls();
+    setupDrawerControls();
     
     // ブレンドモードの設定
     blendMode(ADD);
@@ -190,6 +191,16 @@ function updateEffectButtonStates(activeEffect) {
 
 // キー押下時の処理
 function keyPressed() {
+    // Escapeキーでドロワーを閉じる
+    if (keyCode === ESCAPE) {
+        const drawerPanel = document.getElementById('info-drawer');
+        if (drawerPanel && drawerPanel.classList.contains('active')) {
+            console.log('🗂️ Closing drawer (Escape key)');
+            closeDrawer();
+            return; // 他の処理を実行しない
+        }
+    }
+    
     switch(key) {
         case ' ':
             isPaused = !isPaused;
@@ -291,4 +302,194 @@ function setupSoundControls() {
     }
     
     console.log('✅ Sound controls initialized');
+}
+
+// ドロワーコントロールの初期化
+function setupDrawerControls() {
+    console.log('🗂️ Setting up drawer controls...');
+    
+    const drawerTrigger = document.getElementById('drawer-trigger');
+    const drawerClose = document.getElementById('drawer-close');
+    const drawerOverlay = document.getElementById('drawer-overlay');
+    const drawerPanel = document.getElementById('info-drawer');
+    
+    if (!drawerTrigger || !drawerClose || !drawerOverlay || !drawerPanel) {
+        console.error('❌ Drawer elements not found');
+        return;
+    }
+    
+    console.log('✅ Drawer control elements found');
+    
+    // ドロワーを開閉（トグル）
+    drawerTrigger.addEventListener('click', (e) => {
+        e.stopPropagation(); // パーティクル発射を防ぐ
+        console.log('🗂️ Toggling drawer');
+        toggleDrawer();
+    });
+    
+    // ドロワーを閉じる（閉じるボタン）
+    drawerClose.addEventListener('click', (e) => {
+        e.stopPropagation(); // パーティクル発射を防ぐ
+        console.log('🗂️ Closing drawer (close button)');
+        closeDrawer();
+    });
+    
+    // ドロワーを閉じる（オーバーレイクリック）
+    drawerOverlay.addEventListener('click', (e) => {
+        e.stopPropagation(); // パーティクル発射を防ぐ
+        console.log('🗂️ Closing drawer (overlay click)');
+        closeDrawer();
+    });
+    
+    // ドロワーパネル内のクリックでイベント伝播を停止
+    drawerPanel.addEventListener('click', (e) => {
+        e.stopPropagation(); // パーティクル発射を防ぐ
+    });
+    
+    // モバイルデバイス対応：タッチイベントでも伝播を停止
+    drawerPanel.addEventListener('touchstart', (e) => {
+        e.stopPropagation(); // タッチ開始時のパーティクル発射を防ぐ
+    });
+    
+    drawerPanel.addEventListener('touchend', (e) => {
+        e.stopPropagation(); // タッチ終了時のパーティクル発射を防ぐ
+    });
+    
+    // フォーカストラップの設定
+    setupFocusTrap(drawerPanel);
+    
+    console.log('✅ Drawer controls initialized');
+}
+
+// ドロワーの開閉をトグル
+function toggleDrawer() {
+    const drawerPanel = document.getElementById('info-drawer');
+    
+    if (!drawerPanel) {
+        console.error('❌ Drawer panel not found');
+        return;
+    }
+    
+    // 現在の状態を判定
+    const isOpen = drawerPanel.classList.contains('active');
+    
+    if (isOpen) {
+        console.log('🗂️ Closing drawer (toggle)');
+        closeDrawer();
+    } else {
+        console.log('🗂️ Opening drawer (toggle)');
+        openDrawer();
+    }
+}
+
+// ドロワーを開く
+function openDrawer() {
+    const drawerTrigger = document.getElementById('drawer-trigger');
+    const drawerOverlay = document.getElementById('drawer-overlay');
+    const drawerPanel = document.getElementById('info-drawer');
+    
+    if (drawerTrigger && drawerOverlay && drawerPanel) {
+        // アクティブ状態を設定
+        drawerOverlay.classList.add('active');
+        drawerPanel.classList.add('active');
+        
+        // アクセシビリティ属性を更新
+        drawerTrigger.setAttribute('aria-expanded', 'true');
+        
+        // ボタンアイコンを更新
+        updateDrawerButtonIcon(true);
+        
+        // フォーカスをドロワー内に移動
+        setTimeout(() => {
+            const firstFocusable = drawerPanel.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                firstFocusable.focus();
+            }
+        }, 100);
+        
+        console.log('✅ Drawer opened');
+    }
+}
+
+// ドロワーを閉じる
+function closeDrawer() {
+    const drawerTrigger = document.getElementById('drawer-trigger');
+    const drawerOverlay = document.getElementById('drawer-overlay');
+    const drawerPanel = document.getElementById('info-drawer');
+    
+    if (drawerTrigger && drawerOverlay && drawerPanel) {
+        // アクティブ状態を解除
+        drawerOverlay.classList.remove('active');
+        drawerPanel.classList.remove('active');
+        
+        // アクセシビリティ属性を更新
+        drawerTrigger.setAttribute('aria-expanded', 'false');
+        
+        // ボタンアイコンを更新
+        updateDrawerButtonIcon(false);
+        
+        // フォーカスをトリガーボタンに戻す
+        drawerTrigger.focus();
+        
+        console.log('✅ Drawer closed');
+    }
+}
+
+// ドロワーボタンのアイコンを更新
+function updateDrawerButtonIcon(isOpen) {
+    const drawerTrigger = document.getElementById('drawer-trigger');
+    const hamburgerIcon = drawerTrigger ? drawerTrigger.querySelector('.hamburger-icon') : null;
+    
+    if (!hamburgerIcon) {
+        console.warn('⚠️ Hamburger icon element not found');
+        return;
+    }
+    
+    if (isOpen) {
+        // ドロワーが開いている場合：×アイコン
+        hamburgerIcon.textContent = '×';
+        hamburgerIcon.style.fontSize = '24px'; // 少し大きく表示
+        console.log('🔄 Button icon changed to close (×)');
+    } else {
+        // ドロワーが閉じている場合：ハンバーガーアイコン
+        hamburgerIcon.textContent = '☰';
+        hamburgerIcon.style.fontSize = '20px'; // 元のサイズ
+        console.log('🔄 Button icon changed to hamburger (☰)');
+    }
+}
+
+// フォーカストラップの設定
+function setupFocusTrap(drawerPanel) {
+    drawerPanel.addEventListener('keydown', (e) => {
+        // ドロワーが開いていない場合は何もしない
+        if (!drawerPanel.classList.contains('active')) {
+            return;
+        }
+        
+        // Tabキーが押された場合のフォーカス制御
+        if (e.key === 'Tab') {
+            const focusableElements = drawerPanel.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            
+            if (focusableElements.length === 0) return;
+            
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+            
+            if (e.shiftKey) {
+                // Shift + Tab: 前の要素へ
+                if (document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                // Tab: 次の要素へ
+                if (document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        }
+    });
 }
