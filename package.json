@@ -1,7 +1,7 @@
 {
-  "name": "p5-interactive-animation",
+  "name": "sonicbloom",
   "version": "1.0.0",
-  "description": "感情を動かす調和の取れたインタラクティブパーティクルアニメーション",
+  "description": "音と映像が織りなす美しい調和のインタラクティブアート体験",
   "main": "index.html",
   "scripts": {
     "start": "http-server -p 8000 -o -c-1",
