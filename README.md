@@ -54,8 +54,6 @@ npm install
 
 # 3. 開発サーバーを起動
 npm run dev     # ポート8000で起動、ブラウザ自動起動
-# または
-npm start       # 同上
 
 # その他の起動オプション
 npm run serve   # ブラウザ自動起動なし
