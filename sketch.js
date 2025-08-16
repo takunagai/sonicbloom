@@ -251,7 +251,8 @@ function setupSoundControls() {
     console.log('✅ Sound control elements found');
     
     // ミュートボタンのイベントハンドラー
-    muteButton.addEventListener('click', () => {
+    muteButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // パーティクル発射を防ぐ
         console.log('🔇 Mute button clicked');
         const isMuted = soundSystem.toggleMute();
         console.log('🔇 Mute state:', isMuted);
@@ -260,7 +261,8 @@ function setupSoundControls() {
     
     // エフェクト切り替えボタンのイベントハンドラー
     effectButtons.forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // パーティクル発射を防ぐ
             const effectNumber = parseInt(button.dataset.effect);
             console.log('🎨 Effect button clicked:', effectNumber);
             
@@ -271,6 +273,22 @@ function setupSoundControls() {
     
     // 初期エフェクトボタンの状態を設定
     updateEffectButtonStates(currentEffect);
+    
+    // サウンドコントロールエリア全体でのイベント伝播停止
+    const soundControlsArea = document.querySelector('.sound-controls');
+    if (soundControlsArea) {
+        soundControlsArea.addEventListener('click', (e) => {
+            e.stopPropagation(); // パーティクル発射を防ぐ
+        });
+        
+        soundControlsArea.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); // mousePressed()の呼び出しを防ぐ
+        });
+        
+        soundControlsArea.addEventListener('mouseup', (e) => {
+            e.stopPropagation(); // mouseReleased()の呼び出しを防ぐ
+        });
+    }
     
     console.log('✅ Sound controls initialized');
 }
