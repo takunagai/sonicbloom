@@ -26,13 +26,33 @@
         </div>
         <div class="drawer-content">
             <div class="controls">
-                <p><strong>クリックしてサウンドシステムを開始してください</strong></p>
-                <p>クリック: 爆発エフェクト | ドラッグ: パーティクル操作 + 軌跡表示</p>
-                <p>Space: 一時停止 | R: リセット | 1-5: エフェクト切替 | M: ミュート</p>
+                <!-- デスクトップ用説明 -->
+                <div class="controls-desktop">
+                    <h3>🕹️ 操作方法</h3>
+                    <ul>
+                        <li>クリック：爆発エフェクト</li>
+                        <li>ドラッグ：パーティクル操作+軌跡表示</li>
+                        <li>Space： 一時停止</li>
+                        <li>1-5キー：エフェクト切替</li>
+                        <li>Rキー：リセット</li>
+                        <li>Mキー：ミュート</li>
+                    </ul>
+                </div>
+                
+                <!-- タブレット・モバイル用説明 -->
+                <div class="controls-mobile">
+                    <h3>☝️ 操作方法</h3>
+                    <ul>
+                        <li>タップ：爆発エフェクト</li>
+                        <li>スワイプ：パーティクル操作+軌跡表示</li>
+                        <li>その他の操作：画面下の絵文字をクリック</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
     <div class="sound-controls">
+        <button id="pause-button" aria-label="一時停止/再開">⏸️</button>
         <button id="mute-button">🔈</button>
         <span class="effect-buttons">
             <button class="effect-btn" data-effect="1">1️⃣</button>
