@@ -9,12 +9,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
-    <div id="info">
-        <h1>Interactive Particle Animation</h1>
-        <div class="controls">
-            <p><strong>クリックしてサウンドシステムを開始してください</strong></p>
-            <p>クリック: 爆発エフェクト | ドラッグ: パーティクル操作 + 軌跡表示</p>
-            <p>Space: 一時停止 | R: リセット | 1-5: エフェクト切替 | M: ミュート</p>
+    <!-- ドロワーメニュートリガーボタン -->
+    <button id="drawer-trigger" aria-expanded="false" aria-controls="info-drawer">
+        <span class="hamburger-icon">☰</span>
+        <span class="sr-only">メニューを開く</span>
+    </button>
+
+    <!-- ドロワーオーバーレイ -->
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+
+    <!-- ドロワーパネル -->
+    <div id="info-drawer" class="info-drawer">
+        <div class="drawer-header">
+            <h1>Interactive Particle Animation</h1>
+            <button id="drawer-close" aria-label="メニューを閉じる">×</button>
+        </div>
+        <div class="drawer-content">
+            <div class="controls">
+                <p><strong>クリックしてサウンドシステムを開始してください</strong></p>
+                <p>クリック: 爆発エフェクト | ドラッグ: パーティクル操作 + 軌跡表示</p>
+                <p>Space: 一時停止 | R: リセット | 1-5: エフェクト切替 | M: ミュート</p>
+            </div>
         </div>
     </div>
     <div class="sound-controls">
