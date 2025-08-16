@@ -55,24 +55,16 @@ canvas {
 .initial-message-content {
     text-align: center;
     color: #fff;
-    padding: 40px;
-    background: rgba(0, 0, 0, 0.9);
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .message-line {
     margin: 0 0 12px 0;
-    font-size: 20px;
+    font-size: 16px;
     line-height: 1.5;
-    font-weight: 600;
 }
 
 .message-line:first-child {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 28px;
     margin-bottom: 20px;
     background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff);
     -webkit-background-clip: text;
@@ -90,7 +82,7 @@ canvas {
     top: 20px;
     left: 20px;
     z-index: 20;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.5);
     border: none;
     border-radius: 50%;
     color: #fff;
@@ -154,7 +146,7 @@ canvas {
 }
 
 .drawer-header h1 {
-    font-size: 24px;
+    font-size: 20px;
     margin: 0;
     background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff);
     -webkit-background-clip: text;
@@ -350,7 +342,7 @@ canvas {
     }
     
     .drawer-header h1 {
-        font-size: 20px;
+        font-size: 16px;
     }
     
     .drawer-content {
@@ -381,17 +373,12 @@ canvas {
     }
     
     /* 初期メッセージのモバイル対応 */
-    .initial-message-content {
-        padding: 30px 20px;
-        margin: 0 20px;
-    }
-    
     .message-line {
-        font-size: 16px;
+        font-size: 12px;
     }
     
     .message-line:first-child {
-        font-size: 24px;
+        font-size: 20px;
         margin-bottom: 16px;
     }
 }
