@@ -9,6 +9,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
+    <!-- 初期メッセージオーバーレイ -->
+    <div id="initial-message" class="initial-message-overlay">
+        <div class="initial-message-content">
+            <p class="message-line">CLICK!</p>
+            <p class="message-line">停止中も爆発をセット可能。</p>
+            <p class="message-line">数字ボタンで効果を変更。</p>
+        </div>
+    </div>
+
     <!-- ドロワーメニュートリガーボタン -->
     <button id="drawer-trigger" aria-expanded="false" aria-controls="info-drawer">
         <span class="hamburger-icon">☰</span>
