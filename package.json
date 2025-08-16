@@ -4,9 +4,9 @@
   "description": "感情を動かす調和の取れたインタラクティブパーティクルアニメーション",
   "main": "index.html",
   "scripts": {
-    "start": "python3 start-server.py",
-    "dev": "python3 start-server.py",
-    "serve": "python3 start-server.py"
+    "start": "http-server -p 8000 -o -c-1",
+    "dev": "http-server -p 8000 -o -c-1",
+    "serve": "http-server -p 8000"
   },
   "keywords": [
     "p5.js",
@@ -16,5 +16,8 @@
     "interactive"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
 }
