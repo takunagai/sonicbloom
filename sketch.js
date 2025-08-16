@@ -197,37 +197,52 @@ function displayDebugInfo() {
 function setupSoundControls() {
     console.log('🎛️ Setting up sound controls...');
     
-    const volumeSlider = document.getElementById('volume-slider');
-    const volumeDisplay = document.getElementById('volume-display');
     const muteButton = document.getElementById('mute-button');
+    const effectButtons = document.querySelectorAll('.effect-btn');
     
-    if (!volumeSlider || !volumeDisplay || !muteButton) {
-        console.error('❌ Sound control elements not found');
+    if (!muteButton) {
+        console.error('❌ Mute button not found');
         return;
     }
     
     console.log('✅ Sound control elements found');
-    
-    // ボリュームスライダーのイベントハンドラー
-    volumeSlider.addEventListener('input', (e) => {
-        const volume = e.target.value / Config.UI.VOLUME.SLIDER_SCALE;
-        console.log('🔊 Volume slider changed to:', volume);
-        soundSystem.setMasterVolume(volume);
-        volumeDisplay.textContent = `${e.target.value}%`;
-    });
     
     // ミュートボタンのイベントハンドラー
     muteButton.addEventListener('click', () => {
         console.log('🔇 Mute button clicked');
         const isMuted = soundSystem.toggleMute();
         console.log('🔇 Mute state:', isMuted);
-        muteButton.textContent = isMuted ? '🔇' : '🔊';
-        muteButton.classList.toggle('muted', isMuted);
-        
-        // ミュート時はボリュームスライダーを無効化
-        volumeSlider.disabled = isMuted;
-        volumeSlider.style.opacity = isMuted ? Config.UI.VOLUME.MUTED_OPACITY : Config.UI.VOLUME.NORMAL_OPACITY;
+        muteButton.textContent = isMuted ? '🔇' : '🔈';
     });
+    
+    // エフェクト切り替えボタンのイベントハンドラー
+    effectButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const effectNumber = parseInt(button.dataset.effect);
+            console.log('🎨 Effect button clicked:', effectNumber);
+            
+            currentEffect = effectNumber;
+            particleSystem.setEffect(currentEffect);
+            
+            // 背景アルファ値の設定（元のキー操作と同じ）
+            switch(effectNumber) {
+                case 1: bgAlpha = 20; break;
+                case 2: bgAlpha = 10; break;
+                case 3: bgAlpha = 5; break;
+                case 4: bgAlpha = 15; break;
+                case 5: bgAlpha = 25; break;
+            }
+            
+            // アクティブなエフェクトボタンのスタイリング（オプション）
+            effectButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+        });
+    });
+    
+    // 初期エフェクトボタンをアクティブに設定
+    if (effectButtons[0]) {
+        effectButtons[0].classList.add('active');
+    }
     
     console.log('✅ Sound controls initialized');
 }
