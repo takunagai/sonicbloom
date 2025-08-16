@@ -37,6 +37,7 @@ function setup() {
     // UIコントロールの初期化
     setupSoundControls();
     setupDrawerControls();
+    setupInitialMessage();
     
     // ブレンドモードの設定
     blendMode(ADD);
@@ -521,6 +522,41 @@ function updatePauseButtonIcon() {
         pauseButton.setAttribute('aria-label', '一時停止');
         console.log('🔄 Button icon changed to pause (⏸️)');
     }
+}
+
+// 初期メッセージの表示制御
+function setupInitialMessage() {
+    console.log('💬 Setting up initial message...');
+    
+    const initialMessage = document.getElementById('initial-message');
+    let isMessageHidden = false;
+    
+    if (!initialMessage) {
+        console.error('❌ Initial message element not found');
+        return;
+    }
+    
+    // 初期メッセージを表示
+    console.log('✅ Initial message displayed');
+    
+    // 任意の場所での最初のクリックで非表示にする
+    document.addEventListener('click', function hideInitialMessage(e) {
+        if (!isMessageHidden) {
+            console.log('💬 Hiding initial message on first click');
+            
+            // フェードアウトアニメーション
+            initialMessage.classList.add('hidden');
+            isMessageHidden = true;
+            
+            // アニメーション完了後にイベントリスナーを削除
+            setTimeout(() => {
+                document.removeEventListener('click', hideInitialMessage);
+                console.log('✅ Initial message permanently hidden');
+            }, 500); // CSSのtransition時間と合わせる
+        }
+    });
+    
+    console.log('✅ Initial message controls initialized');
 }
 
 // フォーカストラップの設定
