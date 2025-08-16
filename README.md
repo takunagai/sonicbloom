@@ -38,44 +38,40 @@ Interactive Particle Animationは、p5.jsとWeb Audio APIを活用して作ら�
 
 ### ⚠️ 重要事項
 
-このプロジェクトは**p5.soundライブラリ**を使用するため、ローカルHTTPサーバーでの実行が必須です。ファイルを直接ブラウザで開くとCORSエラーが発生します。
+このプロジェクトは**p5.soundライブラリ**を使用するため、ローカルHTTPサーバーでの実行が必須です。
+
+**理由**: p5.soundはWeb Audio APIを使用しており、`file://`プロトコルではブラウザのCORS（Cross-Origin Resource Sharing）セキュリティ制限により音声リソースへのアクセスがブロックされます。このため、`index.html`を直接開いても動作しません。
 
 ### 📥 セットアップ
-
-このプロジェクトは外部依存関係がなく、p5.jsはCDN経由で読み込むため、`npm install`は不要です。
 
 ```bash
 # 1. リポジトリをクローン
 git clone <repository-url>
 cd p5-interactive-animation
 
-# 2. ローカルHTTPサーバーを起動（以下のいずれかの方法）
+# 2. 依存関係をインストール（初回のみ）
+npm install
 
-# 方法A: npmスクリプトを使用（Python3が必要）
-npm run dev     # または npm start
+# 3. 開発サーバーを起動
+npm run dev     # ポート8000で起動、ブラウザ自動起動
+# または
+npm start       # 同上
 
-# 方法B: Node.jsベースのHTTPサーバー（推奨）
-npx serve .                     # ポート3000で起動
-npx http-server -p 8000         # ポート8000で起動
-npx live-server                 # 自動リロード機能付き
-
-# 方法C: 他の言語の標準HTTPサーバー
-python3 -m http.server 8000     # Python 3
-python -m SimpleHTTPServer 8000 # Python 2
-ruby -run -e httpd . -p 8000    # Ruby
+# その他の起動オプション
+npm run serve   # ブラウザ自動起動なし
 ```
+
+#### 📌 補足情報
+- p5.jsライブラリはCDN経由で読み込まれます
+- 開発サーバーは**http-server**（軽量Node.js HTTPサーバー）を使用
+- キャッシュは自動的に無効化されます（開発時の利便性向上）
 
 ### 🌐 アクセス
 
-サーバー起動後、使用したサーバーに応じて以下のURLにアクセス：
+開発サーバー起動後、自動的にブラウザが開きます。
+手動でアクセスする場合は以下のURLを使用：
 
-| サーバー | デフォルトURL |
-|---------|---------------|
-| npm run dev | http://localhost:8000 |
-| npx serve | http://localhost:3000 |
-| npx http-server | http://localhost:8080 |
-| npx live-server | http://localhost:8080 |
-| python3 -m http.server | http://localhost:8000 |
+**http://localhost:8000**
 
 ### 📱 動作環境
 
@@ -159,7 +155,8 @@ p5-interactive-animation/
 - **HTML5 & CSS3**: レスポンシブUI
 
 #### 開発・運用
-- **HTTPサーバー**: CORS問題解決用（npm/npx）
+- **http-server**: 軽量Node.js HTTPサーバー（CORS問題解決）
+- **npm**: パッケージ管理・スクリプト実行
 - **Git**: バージョン管理
 - **JSDoc**: コード内ドキュメント
 - **モジュラー設計**: Factory/Strategy パターン実装
@@ -288,16 +285,22 @@ const memoryInfo = performance.memory;
 # 解決方法
 ❌ file:// プロトコルでは動作しません
 ✅ 必ずHTTPサーバー経由でアクセス
-✅ npm start または npx serve を使用
-✅ ポート8000または8080でアクセス
+✅ npm install → npm run dev を実行
+✅ http://localhost:8000 でアクセス
 ```
 
 #### サーバー起動失敗
 ```bash
-# 代替起動方法
-npx serve .                     # serve パッケージ
-npx http-server -p 8000         # http-server パッケージ
-npx live-server                 # live-server パッケージ（自動リロード付き）
+# ポート8000が使用中の場合
+# 1. 別のポートを指定
+npx http-server -p 8080         # ポート8080で起動
+
+# 2. または、使用中のプロセスを終了
+lsof -i :8000                   # macOS/Linux
+netstat -ano | findstr :8000    # Windows
+
+# 3. npm installが未実行の場合
+npm install                      # 依存関係をインストール
 ```
 
 ### 💻 開発環境問題
