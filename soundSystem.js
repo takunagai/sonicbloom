@@ -364,25 +364,13 @@ class SoundSystem {
     }
     
     /**
-     * サウンドステータスの表示更新
+     * サウンドステータスの表示更新（無効化）
      * @param {string} message - 表示メッセージ
      * @param {string} backgroundColor - 背景色
      */
     updateSoundStatus(message, backgroundColor = Config.UI.STATUS_COLORS.INFO) {
-        return ErrorUtils.safeExecute(() => {
-            const statusElement = document.getElementById('sound-status-text');
-            const statusContainer = document.getElementById('sound-status');
-            
-            if (statusElement) {
-                statusElement.textContent = message;
-            }
-            
-            if (statusContainer) {
-                statusContainer.style.backgroundColor = backgroundColor;
-            }
-            
-            console.log('📊 Sound status updated:', message);
-        }, 'SoundSystem.updateSoundStatus');
+        // ユーザー要求により、サウンドステータス表示機能を無効化
+        console.log('📊 Sound status (disabled):', message);
     }
     
     /**
