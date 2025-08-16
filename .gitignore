@@ -70,6 +70,7 @@ temp/
 # Cache directories
 .cache/
 .parcel-cache/
+.vite/
 
 # Optional npm cache directory
 .npm
