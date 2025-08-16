@@ -57,13 +57,20 @@ canvas {
 }
 
 .sound-controls {
-    margin-top: 15px;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 #mute-button {
@@ -124,5 +131,19 @@ canvas {
     
     .controls {
         font-size: 12px;
+    }
+    
+    .sound-controls {
+        bottom: 15px;
+        padding: 10px 16px;
+        gap: 8px;
+    }
+    
+    #mute-button {
+        font-size: 18px;
+    }
+    
+    .effect-btn {
+        font-size: 14px;
     }
 }
