@@ -42,23 +42,40 @@ Interactive Particle Animationは、p5.jsとWeb Audio APIを活用して作ら�
 
 ### 📥 セットアップ
 
+このプロジェクトは外部依存関係がなく、p5.jsはCDN経由で読み込むため、`npm install`は不要です。
+
 ```bash
 # 1. リポジトリをクローン
 git clone <repository-url>
 cd p5-interactive-animation
 
-# 2. サーバーを起動（推奨方法）
-python3 start-server.py
+# 2. ローカルHTTPサーバーを起動（以下のいずれかの方法）
 
-# または npm を使用
-npm start
+# 方法A: npmスクリプトを使用（Python3が必要）
+npm run dev     # または npm start
+
+# 方法B: Node.jsベースのHTTPサーバー（推奨）
+npx serve .                     # ポート3000で起動
+npx http-server -p 8000         # ポート8000で起動
+npx live-server                 # 自動リロード機能付き
+
+# 方法C: 他の言語の標準HTTPサーバー
+python3 -m http.server 8000     # Python 3
+python -m SimpleHTTPServer 8000 # Python 2
+ruby -run -e httpd . -p 8000    # Ruby
 ```
 
 ### 🌐 アクセス
 
-サーバー起動後、ブラウザで以下のURLにアクセス：
-- **メイン**: http://localhost:8080
-- **代替ポート**: http://localhost:8000
+サーバー起動後、使用したサーバーに応じて以下のURLにアクセス：
+
+| サーバー | デフォルトURL |
+|---------|---------------|
+| npm run dev | http://localhost:8000 |
+| npx serve | http://localhost:3000 |
+| npx http-server | http://localhost:8080 |
+| npx live-server | http://localhost:8080 |
+| python3 -m http.server | http://localhost:8000 |
 
 ### 📱 動作環境
 
@@ -126,24 +143,26 @@ p5-interactive-animation/
 ├── ✨ particleSystem.js          # パーティクル管理システム
 ├── 🔴 particle.js                # 個別パーティクル物理演算
 ├── 🌊 dragTrail.js               # ドラッグ軌跡管理
-├── 🚀 start-server.py            # 開発サーバー起動スクリプト
 ├── 📦 package.json               # Node.js依存関係
+├── 🤖 CLAUDE.md                  # Claude Code向け開発ガイド
 └── 📚 README.md                  # プロジェクトドキュメント
 ```
 
 ### 🏗️ 技術スタック
 
 #### フロントエンド
-- **p5.js 1.9.0**: クリエイティブコーディングフレームワーク
-- **p5.sound**: Web Audio API統合ライブラリ
+- **p5.js 1.9.0**: クリエイティブコーディングフレームワーク（CDN経由）
+- **p5.sound**: Web Audio API統合ライブラリ（CDN経由）
 - **Web Audio API**: 高品質リアルタイム音声処理
 - **Canvas API**: 高性能2Dグラフィックス描画
+- **Vanilla JavaScript**: ES6+ モジュラー設計
+- **HTML5 & CSS3**: レスポンシブUI
 
 #### 開発・運用
-- **Python**: 開発サーバー（HTTP Server）
+- **HTTPサーバー**: CORS問題解決用（npm/npx）
 - **Git**: バージョン管理
-- **JSDoc**: API ドキュメント生成
-- **ESLint風**: コード品質管理
+- **JSDoc**: コード内ドキュメント
+- **モジュラー設計**: Factory/Strategy パターン実装
 
 ### 🎯 アーキテクチャ設計原則
 
@@ -205,11 +224,12 @@ const memoryInfo = performance.memory;
 ### 🧪 テスト・品質保証
 
 #### 品質チェック項目
-- ✅ **構文チェック**: 全JSファイルのNode.js構文検証
+- ✅ **構文チェック**: 全JSファイルのブラウザ互換性検証
 - ✅ **パフォーマンス**: 60FPS維持、メモリリーク防止
 - ✅ **ブラウザ互換性**: 主要ブラウザでの動作確認
 - ✅ **アクセシビリティ**: キーボード操作、視覚的フィードバック
-- ✅ **エラーハンドリング**: 異常系でのクラッシュ防止
+- ✅ **エラーハンドリング**: 統一エラーハンドリングによるクラッシュ防止
+- ✅ **Web Audio API**: CORS制限とユーザーインタラクション要件の対応
 
 #### パフォーマンス最適化指標
 - **目標FPS**: 60fps (16.67ms/frame)
@@ -268,16 +288,16 @@ const memoryInfo = performance.memory;
 # 解決方法
 ❌ file:// プロトコルでは動作しません
 ✅ 必ずHTTPサーバー経由でアクセス
-✅ python3 start-server.py を使用
-✅ ポート8080または8000でアクセス
+✅ npm start または npx serve を使用
+✅ ポート8000または8080でアクセス
 ```
 
 #### サーバー起動失敗
 ```bash
 # 代替起動方法
-python3 -m http.server 8000    # Python標準
-npx serve .                     # Node.js
-php -S localhost:8000           # PHP
+npx serve .                     # serve パッケージ
+npx http-server -p 8000         # http-server パッケージ
+npx live-server                 # live-server パッケージ（自動リロード付き）
 ```
 
 ### 💻 開発環境問題
@@ -326,6 +346,8 @@ php -S localhost:8000           # PHP
 4. **テスト**: 異なる環境での動作確認
 
 ### 📝 開発ガイドライン
+
+詳細な開発ガイドラインは [CLAUDE.md](CLAUDE.md) を参照してください。
 
 #### コーディング規約
 ```javascript
