@@ -135,6 +135,59 @@ function mouseReleased() {
     currentDragPath = [];
 }
 
+// エフェクト切り替えの共通処理
+function switchEffect(effectNumber) {
+    // 有効な範囲チェック
+    if (effectNumber < 1 || effectNumber > 5) {
+        console.warn('Invalid effect number:', effectNumber);
+        return;
+    }
+    
+    console.log('🎨 Switching to effect:', effectNumber);
+    
+    // エフェクト設定
+    currentEffect = effectNumber;
+    particleSystem.setEffect(currentEffect);
+    
+    // 背景アルファ値の設定
+    switch(effectNumber) {
+        case 1: bgAlpha = 20; break;
+        case 2: bgAlpha = 10; break;
+        case 3: bgAlpha = 5; break;
+        case 4: bgAlpha = 15; break;
+        case 5: bgAlpha = 25; break;
+    }
+    
+    // ボタンのアクティブ状態更新
+    updateEffectButtonStates(effectNumber);
+}
+
+// エフェクトボタンのアクティブ状態を更新
+function updateEffectButtonStates(activeEffect) {
+    // 無効な値のチェック
+    if (!activeEffect || activeEffect < 1 || activeEffect > 5) {
+        console.warn('Invalid activeEffect for button update:', activeEffect);
+        return;
+    }
+    
+    const effectButtons = document.querySelectorAll('.effect-btn');
+    
+    // ボタンが存在しない場合の処理
+    if (effectButtons.length === 0) {
+        console.warn('No effect buttons found for state update');
+        return;
+    }
+    
+    effectButtons.forEach(button => {
+        const buttonEffect = parseInt(button.dataset.effect);
+        if (buttonEffect === activeEffect) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
 // キー押下時の処理
 function keyPressed() {
     switch(key) {
@@ -147,29 +200,19 @@ function keyPressed() {
             particleSystem.createInitialParticles();
             break;
         case '1':
-            currentEffect = 1;
-            particleSystem.setEffect(currentEffect);
-            bgAlpha = 20;
+            switchEffect(1);
             break;
         case '2':
-            currentEffect = 2;
-            particleSystem.setEffect(currentEffect);
-            bgAlpha = 10;
+            switchEffect(2);
             break;
         case '3':
-            currentEffect = 3;
-            particleSystem.setEffect(currentEffect);
-            bgAlpha = 5;
+            switchEffect(3);
             break;
         case '4':
-            currentEffect = 4;
-            particleSystem.setEffect(currentEffect);
-            bgAlpha = 15;
+            switchEffect(4);
             break;
         case '5':
-            currentEffect = 5;
-            particleSystem.setEffect(currentEffect);
-            bgAlpha = 25;
+            switchEffect(5);
             break;
         case 'm':
         case 'M':
@@ -221,28 +264,13 @@ function setupSoundControls() {
             const effectNumber = parseInt(button.dataset.effect);
             console.log('🎨 Effect button clicked:', effectNumber);
             
-            currentEffect = effectNumber;
-            particleSystem.setEffect(currentEffect);
-            
-            // 背景アルファ値の設定（元のキー操作と同じ）
-            switch(effectNumber) {
-                case 1: bgAlpha = 20; break;
-                case 2: bgAlpha = 10; break;
-                case 3: bgAlpha = 5; break;
-                case 4: bgAlpha = 15; break;
-                case 5: bgAlpha = 25; break;
-            }
-            
-            // アクティブなエフェクトボタンのスタイリング（オプション）
-            effectButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+            // 共通関数を使用してエフェクト切り替え
+            switchEffect(effectNumber);
         });
     });
     
-    // 初期エフェクトボタンをアクティブに設定
-    if (effectButtons[0]) {
-        effectButtons[0].classList.add('active');
-    }
+    // 初期エフェクトボタンの状態を設定
+    updateEffectButtonStates(currentEffect);
     
     console.log('✅ Sound controls initialized');
 }
