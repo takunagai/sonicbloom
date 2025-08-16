@@ -203,7 +203,7 @@ function keyPressed() {
     
     switch(key) {
         case ' ':
-            isPaused = !isPaused;
+            togglePause();
             break;
         case 'r':
         case 'R':
@@ -251,8 +251,14 @@ function displayDebugInfo() {
 function setupSoundControls() {
     console.log('🎛️ Setting up sound controls...');
     
+    const pauseButton = document.getElementById('pause-button');
     const muteButton = document.getElementById('mute-button');
     const effectButtons = document.querySelectorAll('.effect-btn');
+    
+    if (!pauseButton) {
+        console.error('❌ Pause button not found');
+        return;
+    }
     
     if (!muteButton) {
         console.error('❌ Mute button not found');
@@ -260,6 +266,13 @@ function setupSoundControls() {
     }
     
     console.log('✅ Sound control elements found');
+    
+    // 停止/再開ボタンのイベントハンドラー
+    pauseButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // パーティクル発射を防ぐ
+        console.log('⏸️ Pause button clicked');
+        togglePause();
+    });
     
     // ミュートボタンのイベントハンドラー
     muteButton.addEventListener('click', (e) => {
@@ -455,6 +468,40 @@ function updateDrawerButtonIcon(isOpen) {
         hamburgerIcon.textContent = '☰';
         hamburgerIcon.style.fontSize = '20px'; // 元のサイズ
         console.log('🔄 Button icon changed to hamburger (☰)');
+    }
+}
+
+// 一時停止をトグル
+function togglePause() {
+    // 一時停止状態を切り替え
+    isPaused = !isPaused;
+    
+    // ボタンアイコンを更新
+    updatePauseButtonIcon();
+    
+    // 状態をログ出力
+    console.log(`🎬 Animation ${isPaused ? 'paused' : 'resumed'}`);
+}
+
+// 停止/再開ボタンのアイコンを更新
+function updatePauseButtonIcon() {
+    const pauseButton = document.getElementById('pause-button');
+    
+    if (!pauseButton) {
+        console.warn('⚠️ Pause button element not found');
+        return;
+    }
+    
+    if (isPaused) {
+        // 一時停止中：再開ボタンを表示
+        pauseButton.textContent = '▶️';
+        pauseButton.setAttribute('aria-label', '再開');
+        console.log('🔄 Button icon changed to play (▶️)');
+    } else {
+        // 動作中：停止ボタンを表示
+        pauseButton.textContent = '⏸️';
+        pauseButton.setAttribute('aria-label', '一時停止');
+        console.log('🔄 Button icon changed to pause (⏸️)');
     }
 }
 
