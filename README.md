@@ -8,12 +8,9 @@
 [![p5.js](https://img.shields.io/badge/p5.js-1.9.0-ED225D)](https://p5js.org/)
 [![Web Audio API](https://img.shields.io/badge/Web%20Audio%20API-Supported-blue)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 
-*音楽理論とビジュアルアートが融合した、感情に響く体験型デジタルアート*
+### 🎮 [今すぐプレイ](https://sonicbloom.autumn-wave-9579.workers.dev) 
 
-[🚀 クイックスタート](#-クイックスタート) •
-[🎮 使用方法](#-使用方法) •
-[🛠️ 開発者向け](#️-開発者向け情報) •
-[📚 ドキュメント](#-アーキテクチャ)
+*音楽理論とビジュアルアートが融合した、感情に響く体験型デジタルアート*
 
 </div>
 
@@ -34,48 +31,23 @@ SonicBloomは、p5.jsとWeb Audio APIを活用して作られた、音と映像�
 
 ---
 
-## 🚀 クイックスタート
-
-### ⚠️ 重要事項
-
-このプロジェクトは**p5.soundライブラリ**を使用するため、ローカルHTTPサーバーでの実行が必須です。
-
-**理由**: p5.soundはWeb Audio APIを使用しており、`file://`プロトコルではブラウザのCORS（Cross-Origin Resource Sharing）セキュリティ制限により音声リソースへのアクセスがブロックされます。このため、`index.html`を直接開いても動作しません。
+## 🚀 ローカル開発
 
 ### 📥 セットアップ
 
 ```bash
 # 1. リポジトリをクローン
-git clone <repository-url>
+git clone https://github.com/takunagai/sonicbloom.git
 cd sonicbloom
 
-# 2. 依存関係をインストール（初回のみ）
+# 2. 依存関係をインストール
 npm install
 
 # 3. 開発サーバーを起動
-npm run dev     # ポート8000で起動、ブラウザ自動起動
-
-# その他の起動オプション
-npm run serve   # ブラウザ自動起動なし
+npm run dev     # http://localhost:8000
 ```
 
-#### 📌 補足情報
-- p5.jsライブラリはCDN経由で読み込まれます
-- 開発サーバーは**http-server**（軽量Node.js HTTPサーバー）を使用
-- キャッシュは自動的に無効化されます（開発時の利便性向上）
-
-### 🌐 アクセス
-
-開発サーバー起動後、自動的にブラウザが開きます。
-手動でアクセスする場合は以下のURLを使用：
-
-**http://localhost:8000**
-
-### 📱 動作環境
-
-- **ブラウザ**: Chrome, Firefox, Safari, Edge（Web Audio API対応）
-- **OS**: Windows, macOS, Linux
-- **推奨**: デスクトップ環境（マウス操作最適化）
+**注意**: p5.soundライブラリのCORS制限により、ローカルHTTPサーバーでの実行が必須です。
 
 ---
 
@@ -121,296 +93,52 @@ npm run serve   # ブラウザ自動起動なし
 
 ## 🛠️ 開発者向け情報
 
-### 📁 プロジェクト構成
-
-```
-sonicbloom/
-├── 📄 index.html                 # メインHTML（エントリーポイント）
-├── 🎨 style.css                  # UIスタイル定義
-├── 🖼️ sketch.js                  # p5.jsメインスケッチ（描画ループ）
-├── ⚙️ config.js                  # 設定値一元管理・マジックナンバー排除
-├── 🛡️ errorHandler.js            # 統一エラーハンドリング
-├── 🔧 utils.js                   # ユーティリティ関数群
-├── 🎵 soundSystem.js             # 音響システム（Web Audio API）
-├── 💥 explosionStrategy.js       # 爆発エフェクト戦略パターン
-├── 🏭 particleFactory.js         # パーティクル生成ファクトリーパターン
-├── ✨ particleSystem.js          # パーティクル管理システム
-├── 🔴 particle.js                # 個別パーティクル物理演算
-├── 🌊 dragTrail.js               # ドラッグ軌跡管理
-├── 📦 package.json               # Node.js依存関係
-├── 🤖 CLAUDE.md                  # Claude Code向け開発ガイド
-└── 📚 README.md                  # プロジェクトドキュメント
-```
-
 ### 🏗️ 技術スタック
 
-#### フロントエンド
-- **p5.js 1.9.0**: クリエイティブコーディングフレームワーク（CDN経由）
-- **p5.sound**: Web Audio API統合ライブラリ（CDN経由）
-- **Web Audio API**: 高品質リアルタイム音声処理
-- **Canvas API**: 高性能2Dグラフィックス描画
+- **p5.js 1.9.0** & **p5.sound**: クリエイティブコーディングフレームワーク（CDN経由）
+- **Web Audio API**: リアルタイム音声処理
 - **Vanilla JavaScript**: ES6+ モジュラー設計
-- **HTML5 & CSS3**: レスポンシブUI
+- **http-server**: 軽量Node.js HTTPサーバー
 
-#### 開発・運用
-- **http-server**: 軽量Node.js HTTPサーバー（CORS問題解決）
-- **npm**: パッケージ管理・スクリプト実行
-- **Git**: バージョン管理
-- **JSDoc**: コード内ドキュメント
-- **モジュラー設計**: Factory/Strategy パターン実装
+### 📁 主要ファイル
 
-### 🎯 アーキテクチャ設計原則
+- `sketch.js` - p5.jsメインループ
+- `config.js` - 設定値一元管理
+- `soundSystem.js` - 音響システム（Web Audio API）
+- `particleSystem.js` - パーティクル管理システム
+- `dragTrail.js` - ドラッグ軌跡管理
 
-#### 1. **設定駆動開発 (Configuration-Driven Development)**
-```javascript
-// すべての設定値は config.js で一元管理
-const particleConfig = Config.PARTICLES;
-const maxParticles = particleConfig.MAX_COUNT; // マジックナンバー排除
-```
+### ⚙️ カスタマイズ
 
-#### 2. **統一エラーハンドリング**
-```javascript
-// 全メソッドで統一されたエラーハンドリング
-return ErrorUtils.safeExecute(() => {
-    // 処理内容
-}, 'methodName', fallbackValue);
-```
-
-#### 3. **パフォーマンス最適化**
-- **オブジェクトプール**: メモリ効率的なパーティクル再利用
-- **フレームスキップ**: 負荷に応じた描画最適化
-- **バッチ処理**: 効率的なサウンド管理
-- **メモリ監視**: 自動クリーンアップシステム
-
-#### 4. **モジュラー設計**
-- **単一責任**: 各クラスが明確な責任を持つ
-- **疎結合**: 依存関係を最小限に抑制
-- **再利用性**: コンポーネントベースの設計
-
-### ⚙️ 設定とカスタマイズ
-
-#### config.js での設定カスタマイズ
+`config.js` で各種パラメータを調整可能：
 
 ```javascript
-// パーティクル設定例
 Config.PARTICLES.MAX_COUNT = 2000;           // 最大パーティクル数
 Config.CANVAS.TARGET_FPS = 120;              // 目標フレームレート
 Config.SOUND.DEFAULT_MASTER_VOLUME = 0.8;    // 音量設定
-
-// ドラッグトレイル設定例
-Config.DRAG_TRAIL.DURATION_FRAMES = 240;     // 軌跡表示時間（4秒）
-Config.DRAG_TRAIL.MAX_SEGMENTS = 1000;       // 最大軌跡セグメント数
 ```
 
-#### 開発者向けデバッグ機能
-
-```javascript
-// パフォーマンス監視
-const stats = particleSystem.getPerformanceStats();
-console.log('FPS:', performanceMonitor.getFPS());
-
-// エラー追跡
-const errors = errorHandler.getErrorHistory();
-
-// メモリ使用量確認
-const memoryInfo = performance.memory;
-```
-
-### 🧪 テスト・品質保証
-
-#### 品質チェック項目
-- ✅ **構文チェック**: 全JSファイルのブラウザ互換性検証
-- ✅ **パフォーマンス**: 60FPS維持、メモリリーク防止
-- ✅ **ブラウザ互換性**: 主要ブラウザでの動作確認
-- ✅ **アクセシビリティ**: キーボード操作、視覚的フィードバック
-- ✅ **エラーハンドリング**: 統一エラーハンドリングによるクラッシュ防止
-- ✅ **Web Audio API**: CORS制限とユーザーインタラクション要件の対応
-
-#### パフォーマンス最適化指標
-- **目標FPS**: 60fps (16.67ms/frame)
-- **メモリ使用量**: <100MB（警告閾値）
-- **音声レイテンシ**: <50ms
-- **パーティクル最適数**: 200-1000個
+詳細な開発ガイドラインは [CLAUDE.md](CLAUDE.md) を参照してください。
 
 ---
 
 ## 🔧 トラブルシューティング
 
-### 🔇 音声関連の問題
-
-#### サウンドが再生されない
-```bash
-# チェック項目
-1. ブラウザの音声設定を確認
-2. 最初にクリックしてサウンドシステムを初期化
-3. ミュート状態でないかMキーで確認
-4. ブラウザコンソールでエラーメッセージを確認
-```
-
-#### 音声ノイズ・遅延
-```bash
-# 対処方法
-1. ブラウザタブの数を減らす
-2. 他の音声アプリケーションを終了
-3. オーディオドライバーを更新
-4. サンプリングレート設定を確認
-```
-
-### ⚡ パフォーマンス問題
-
-#### フレームレート低下
-```bash
-# 診断・対処
-1. Dキーでデバッグ情報を表示
-2. パーティクル数を確認（>1000で重い）
-3. Rキーでリセット
-4. ブラウザのハードウェアアクセラレーションを確認
-```
-
-#### メモリ使用量増加
-```bash
-# メモリ最適化
-1. 長時間使用後はページリフレッシュ
-2. 他のブラウザタブを閉じる
-3. ブラウザの拡張機能を無効化
-4. システムメモリの空き容量を確認
-```
-
-### 🌐 ネットワーク・サーバー問題
-
-#### CORSエラー
-```bash
-# 解決方法
-❌ file:// プロトコルでは動作しません
-✅ 必ずHTTPサーバー経由でアクセス
-✅ npm install → npm run dev を実行
-✅ http://localhost:8000 でアクセス
-```
-
-#### サーバー起動失敗
-```bash
-# ポート8000が使用中の場合
-# 1. 別のポートを指定
-npx http-server -p 8080         # ポート8080で起動
-
-# 2. または、使用中のプロセスを終了
-lsof -i :8000                   # macOS/Linux
-netstat -ano | findstr :8000    # Windows
-
-# 3. npm installが未実行の場合
-npm install                      # 依存関係をインストール
-```
-
-### 💻 開発環境問題
-
-#### Hot Reload / ファイル変更が反映されない
-```bash
-# 対処方法
-1. ブラウザのキャッシュをクリア（Ctrl+F5）
-2. 開発者ツールでDisable cacheを有効化
-3. サーバーを再起動
-4. プライベートブラウジングモードで確認
-```
-
----
-
-## 📊 パフォーマンス仕様
-
-### 🎯 システム要件
-
-| 項目 | 最小要件 | 推奨要件 |
-|------|----------|----------|
-| **CPU** | Dual-core 2GHz | Quad-core 3GHz+ |
-| **メモリ** | 4GB RAM | 8GB+ RAM |
-| **GPU** | 統合グラフィック | 専用GPU |
-| **ブラウザ** | Chrome 70+ | Chrome/Firefox最新版 |
-
-### 📈 パフォーマンス指標
-
-| メトリクス | 目標値 | 警告閾値 |
-|------------|--------|----------|
-| **フレームレート** | 60 FPS | <30 FPS |
-| **メモリ使用量** | <50MB | >100MB |
-| **音声レイテンシ** | <20ms | >50ms |
-| **パーティクル数** | 200-500 | >1000 |
-| **描画時間** | <8ms | >16ms |
+- **音が出ない**: 最初にクリックして音声を初期化してください（Web Audio API制限）
+- **動作が重い**: Dキーでデバッグ情報を表示し、パーティクル数を確認（1000個以下推奨）
+- **CORSエラー**: `file://`ではなくHTTPサーバー経由でアクセス（`npm run dev`）
 
 ---
 
 ## 🤝 コントリビューション
 
-### 💡 貢献方法
-
-1. **Issue報告**: バグ・機能要望の報告
-2. **Pull Request**: コード改善・機能追加
-3. **ドキュメント**: README・コメントの改善
-4. **テスト**: 異なる環境での動作確認
-
-### 📝 開発ガイドライン
-
-詳細な開発ガイドラインは [CLAUDE.md](CLAUDE.md) を参照してください。
-
-#### コーディング規約
-```javascript
-// ✅ 良い例
-const particleConfig = Config.PARTICLES.APPEARANCE;
-const isValidCoordinate = (x) => isFinite(x) && !isNaN(x);
-
-// ❌ 悪い例
-const pc = Config.PARTICLES.APPEARANCE;
-const valid = (x) => x;
-```
-
-#### コミット規約
-```bash
-# Conventional Commits形式
-feat: 新機能追加
-fix: バグ修正
-docs: ドキュメント更新
-refactor: リファクタリング
-perf: パフォーマンス改善
-test: テスト追加
-```
-
-#### Pull Request要件
-- [ ] コード品質チェック通過
-- [ ] JSDoc追加済み
-- [ ] パフォーマンステスト実行
-- [ ] ブラウザ互換性確認
-- [ ] README更新（必要に応じて）
+Issue報告やPull Requestを歓迎します。詳細な開発ガイドラインは [CLAUDE.md](CLAUDE.md) を参照してください。
 
 ---
 
-## 📄 ライセンス・クレジット
+## 📄 ライセンス
 
-### 📜 ライセンス
-このプロジェクトは **MIT License** の下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご確認ください。
-
-### 🙏 使用ライブラリ・技術
-
-- **p5.js**: [MIT License](https://github.com/processing/p5.js/blob/main/license.txt)
-- **p5.sound**: [LGPL](https://github.com/processing/p5.js-sound/blob/main/LICENSE.txt)
-- **Web Audio API**: [W3C Standard](https://www.w3.org/TR/webaudio/)
-
-### 🎵 音楽理論参考文献
-
-- ペンタトニックスケール理論
-- 黄金比と音響学の関係
-- 倍音列と自然共鳴
-
----
-
-## 🔗 関連リンク・参考資料
-
-### 📚 技術ドキュメント
-- [p5.js公式ドキュメント](https://p5js.org/reference/)
-- [Web Audio API仕様](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-- [Canvas APIリファレンス](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
-
-### 🎨 インスピレーション
-- [Processing Foundation](https://processingfoundation.org/)
-- [Creative Coding Community](https://www.openprocessing.org/)
-- [Generative Art Resources](https://github.com/terkelg/awesome-creative-coding)
+このプロジェクトは **MIT License** の下で公開されています。
 
 ---
 
@@ -419,7 +147,5 @@ test: テスト追加
 **✨ 美しい音と映像の調和をお楽しみください ✨**
 
 *SonicBloom - Where Sound Meets Art*
-
-Made with ❤️ by [Your Name] | 🤖 Enhanced with [Claude Code](https://claude.ai/code)
 
 </div>
